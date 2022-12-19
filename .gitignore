@@ -2,3 +2,5 @@
 *.ssa
 *.cfg
 *.s
+reports/
+*.pdf
