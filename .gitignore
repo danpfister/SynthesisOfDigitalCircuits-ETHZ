@@ -4,3 +4,4 @@
 *.s
 reports/
 *.pdf
+__pycache__/
