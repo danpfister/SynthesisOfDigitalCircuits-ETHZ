@@ -51,6 +51,7 @@ class Parser():
 		self.cdfg = pgv.AGraph(strict=False, directed=True)
 		for basic_block in self.top_function.blocks: #iterate trough basic blocks to generate the cdfg with instructions as nodes
 			for instruction in basic_block.instructions:
+				#_parse_dfg_instruction(str(instruction), self.cdfg) 
 				match_variable_declaration = re.search(r'%(\S+) = (.*)', str(instruction)) 
 				if match_variable_declaration != None: #check if the instruction is a variable declaration
 					variable_name, variable_declaration = match_variable_declaration.group(1, 2)
@@ -66,12 +67,84 @@ class Parser():
 							if DEBUG:
 								print("[DEBUG] Added edge {0} -> {1}".format(operand_variable_name, variable_name))
 
-
 	#function to draw cdfg function representation of the ssa input file
 	def draw_cdfg(self, output_file = 'test.pdf', layout = 'dot'):
 		assert(not(self.cdfg is None))
 		self.cdfg.draw(output_file, prog=layout)
 		print("[Info] Printed cdfg in file {0} with layout {1}".format(output_file, layout))
+
+# parse individual instruction
+def _parse_dfg_instruction(inst, cdfg):
+	inst = inst.replace('%', '')
+	assert type(inst) == str
+	fast_math_flags = r'(nnan )?(ninf )?(nsz )?(arcp )?(contract )?(afn )?(reassoc )?(fast )?'
+	iarith_flags    = r'(nuw )?(nsw )?'
+	# regex for 2-input 1-output operators
+	binary_instructions = [
+		('fneg', r'(\S+) = fneg ' + fast_math_flags + '(\S+) (\S+)'),        # <result> = fneg float %val          ; yields float:result = -%var
+		('add',  r'(\S+) = add '  + iarith_flags + '(\S+) (\S+), (\S+)'),    # <result> = add nuw nsw <ty> <op1>, <op2>  ; yields ty:result
+		('fadd', r'(\S+) = fadd ' + fast_math_flags + '(\S+) (\S+), (\S+)'), 
+		('sub',  r'(\S+) = sub '  + iarith_flags + '(\S+) (\S+), (\S+)'),    
+		('mul',  r'(\S+) = mul '  + iarith_flags + '(\S+) (\S+), (\S+)'),    
+		('fmul', r'(\S+) = fmul ' + fast_math_flags + '(\S+) (\S+), (\S+)'), 
+		('udiv', r'(\S+) = udiv ' + r'(exact )?' + '(\S+) (\S+), (\S+)'), 
+		('sdiv', r'(\S+) = sdiv ' + r'(exact )?' + '(\S+) (\S+), (\S+)'), 
+		('fdiv', r'(\S+) = fdiv ' + fast_math_flags + '(\S+) (\S+), (\S+)'), 
+		('urem', r'(\S+) = urem (\S+) (\S+), (\S+)'), 
+		('srem', r'(\S+) = srem (\S+) (\S+), (\S+)'), 
+		('frem', r'(\S+) = frem ' + fast_math_flags + '(\S+) (\S+), (\S+)'), 
+		('lshr',  r'(\S+) = lshr ' + r'(exact )?' + '(\S+) (\S+), (\S+)'),    
+		('ashr',  r'(\S+) = ashr ' + r'(exact )?' + '(\S+) (\S+), (\S+)'),    
+		('and',   r'(\S+) = and (\S+) (\S+), (\S+)'), 
+		('or',   r'(\S+) = or (\S+) (\S+), (\S+)'), 
+		('xor',   r'(\S+) = xor (\S+) (\S+), (\S+)'), 
+		('icmp', r'(\S+) = icmp (\S+) (\S+) (\S+) (\S+)')                   # <result> = icmp <cond> <ty> <op1>, <op2>   ; yields i1 or <N x i1>:result
+	]
+	uniary_instructions = [
+		('fneg', r'(\S+) = fneg ' + fast_math_flags + '(\S+) (\S+)')        # <result> = fneg float %val          ; yields float:result = -%var
+	]
+	memory_instructions = [
+		('load',  r'(\S+) = load (volatile )?(\S+), (\S+) (\S+),?\s?(align, \S+)?,?\s?'),
+		('store', r'store (volatile )?(\S+) (\S+), (\S+) (\S+),?\s?(align, \S+)?,?\s?')
+	]
+	control_instructions = [
+		('ret',  r'ret (\S+)? (\S+)'),                                       # ret <type> <value> ; Return a value from a non-void function
+		('br',   r'br i1 (\S+), label (\S+), label (\S+)'),                  # br i1 <cond>, label <iftrue>, label <iffalse>
+		('jmp',   r'label (\S+)'),                                            # br label <dest>          ; Unconditional branch
+		('phi', r'(\S+) = phi ' + fast_math_flags + '(\S+) (\[ \S+, \S+ \]),?\s?(\[ \S+, \S+ \])?')
+	]
+	for type_, regex in binary_instructions:
+		match = re.search(regex, inst)
+		if match:
+			left, right = [ n for n in match.groups() if n != None][-2:]
+			result = [ n for n in match.groups() if n != None ][0]
+			print(f'{left} {right} {result}')
+			cdfg.add_node(f'{left}')
+			cdfg.add_node(f'{right}')
+			cdfg.add_node(f'{result}', label = f'{inst}')
+			cdfg.add_edge(f'{left}', f'{result}')
+			cdfg.add_edge(f'{right}', f'{result}')
+			return
+	for type_, regex in memory_instructions:
+		match = re.search(regex, inst)
+		if match and type_ == 'load':
+			result = match.group(1)
+			operand = match.group(5)
+			cdfg.add_node(f'{operand}')
+			cdfg.add_node(f'{result}', label = f'{inst}')
+			cdfg.add_edge(f'{operand}', f'{result}')
+			return
+		elif match and type_ == 'store':
+			result = 'store ' + match.group(4)
+			left, right = match.groups(2, 4)
+			cdfg.add_node(f'{left}')
+			cdfg.add_node(f'{right}')
+			cdfg.add_node(f'{result}', label = f'{inst}')
+			cdfg.add_edge(f'{left}', f'{result}')
+			cdfg.add_edge(f'{right}', f'{result}')
+			return
+
+
 
 
 if __name__ == '__main__':
