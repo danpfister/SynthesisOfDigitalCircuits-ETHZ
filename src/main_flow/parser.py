@@ -173,23 +173,12 @@ def _parse_cdfg_instruction(inst, cdfg, bbID):
 			result = match.group(1)
 			label = type_ + ' ' + result
 			predecessors = [ n for n in match.groups() if n != None][-2:]
-			#for p in predecessors:
-			#	value, bbID = re.match(r'\[ (\S+), (\S+) \]', p).group(1, 2)
-			#	value = 'br ' + value.replace('%', '')
-			#	bbID = bbID.replace('%', '')
-			#	print(value)
-			#	print(bbID)
-			#	print(result)
-			#	cdfg.add_node(f'br {bbID}')
-			#	cdfg.add_node(f'{result.replace("%", "")}')
-			#	cdfg.add_edge(f'br {bbID}', f'{result.replace("%", "")}')
 			
-	result = result.replace('%', '')
+	result = result.replace('%', '_')
 	constants = [ op for op in operands if '%' not in op ]
-	operands = [ op.replace('%', '') for op in operands if '%' in op ]
+	operands = [ op.replace('%', '_') for op in operands if '%' in op ]
 	if result != '':
-		#cdfg.add_node(f'{result}', label = f'{inst.strip()}', bbID = bbID)
-		cdfg.add_node(f'{result}', label = label, bbID = bbID, inst = inst.strip())
+		cdfg.add_node(f'{result}', label = label.replace('%', '_'), bbID = bbID, inst = inst.strip())
 		for input_ in operands:
 			cdfg.add_node(f'{input_}')
 			cdfg.add_edge(f'{input_}', f'{result}')
