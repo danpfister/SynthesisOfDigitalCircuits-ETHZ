@@ -1,3 +1,4 @@
+#!/bin/python3
 import argparse, os
 from src.main_flow.parser import Parser
 
