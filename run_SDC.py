@@ -1,5 +1,5 @@
 #!/bin/python3
-import argparse, os
+import argparse
 from src.main_flow.parser import Parser
 
 def main(args):
