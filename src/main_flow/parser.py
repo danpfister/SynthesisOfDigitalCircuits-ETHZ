@@ -51,6 +51,17 @@ class Parser():
 		for function in self.assembly.functions:
 			if re.search(top_function_name, function.name):
 				self.top_function = function
+				# finding and setting inputs of function
+				for line in str(function).split("\n"):
+					if "define" in line and top_function_name in line:
+						input_regex = r'\(((, )?(\S+)\* %(\S+))*\)'
+						match_input = re.search(input_regex, line)
+						matched_string = match_input.group()
+						splitted_matched_string = matched_string.split()
+						self.function_inputs = []
+						for i in range(len(splitted_matched_string)):
+							if i % 2 != 0:
+								self.function_inputs.append(splitted_matched_string[i].replace(",","").replace(")","").replace("%","_"))
 
 	#function to create the cdfg representation of the assembly code
 	def create_cdfg(self):
@@ -84,11 +95,11 @@ class Parser():
 					if "ext" in instruction_key: # instruction format: result = unary_instruction input_type input to output_type
 						operands = [match.group(3)]
 						result = match.group(1)
-						label = instruction_key
+						label = instruction_key + ' ' + result
 					elif instruction_key == "fneg": # fneg instruction format: result = fneg output_type input 
 						operands = [ n for n in match.groups() if n != None][-1]
 						result = match.group(1)
-						label = instruction_key
+						label = instruction_key + ' ' + result
 				# memory instruction case
 				elif instruction_key in memory_instructions:
 					if "load" in instruction_key:
@@ -135,7 +146,10 @@ class Parser():
 			if DEBUG:
 				print("[DEBUG] Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
 			for input_ in variables: # add a node for each input variable if not present and the edge connecting it to result
-				cdfg.add_node(f'{input_}')
+				if input_ in self.function_inputs: # if the variable is a function input, the bbid is assigned depending on last operation calling it
+					cdfg.add_node(f'{input_}', bbID = bbID)					
+				else:
+					cdfg.add_node(f'{input_}')
 				cdfg.add_edge(f'{input_}', f'{result}')
 				if DEBUG:
 					print("[DEBUG] Added variable node {0} and edge {0} -> {1}".format(input_, result))
