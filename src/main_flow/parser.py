@@ -1,4 +1,4 @@
-import re
+import re, json
 import pygraphviz as pgv
 from llvmlite.binding import parse_assembly
 
@@ -116,7 +116,12 @@ class Parser():
 					elif instruction_key == 'phi':
 						result = match.group(1)
 						label = instruction_key + ' ' + result
-						predecessors = [ n for n in match.groups() if n != None][-2:]
+						input_regex = r'\[(\s)*(\S+)(\s)*,(\s)*(\S+)(\s)*\]' # input format: [value, label]
+						for n in match.groups()[-2:]:
+							if n != None:
+								match_input = re.search(input_regex,n)
+								if match_input != None:
+									operands.append(match_input.group(2))
 				else:
 					print("[ERROR] Identifying instruction '{0}'".format(instruction))
 
@@ -127,12 +132,18 @@ class Parser():
 		variables = [ op.replace('%', '_') for op in operands if '%' in op ] # variables are operands with initial '%' symbol
 		if result != '':
 			cdfg.add_node(f'{result}', label = label.replace('%', '_'), bbID = bbID, instruction = instruction.strip()) # add node related to the instruction
+			if DEBUG:
+				print("[DEBUG] Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
 			for input_ in variables: # add a node for each input variable if not present and the edge connecting it to result
 				cdfg.add_node(f'{input_}')
 				cdfg.add_edge(f'{input_}', f'{result}')
+				if DEBUG:
+					print("[DEBUG] Added variable node {0} and edge {0} -> {1}".format(input_, result))
 			for input_ in constants: # add a node for each input constant and the edge connecting it to result
 				cdfg.add_node(f'{input_}', bbID = bbID)
 				cdfg.add_edge(f'{input_}', f'{result}')
+				if DEBUG:
+					print("[DEBUG] Added constant node {0} and edge {0} -> {1}".format(input_, result))
 
 	#function to draw cdfg function representation of the ssa input file
 	def draw_cdfg(self, output_file = 'test.pdf', layout = 'dot'):
