@@ -67,12 +67,15 @@ class Parser():
 	def create_cdfg(self):
 		assert(not(self.top_function is None)) #check that top_function it not None and the set_top_function has been called at least once
 		self.cdfg = pgv.AGraph(strict=False, directed=True)
+		self.dic_nodes = {} # dictionary of nodes per type # format = { "type1" = [a, b, c], ...} where type1 is a node type and a,b,c are labels
 		for basic_block in self.top_function.blocks: #iterate trough basic blocks to generate the cdfg with instructions as nodes
 			for instruction in basic_block.instructions:
 				self.parse_cdfg_instruction(str(instruction), self.cdfg, str(basic_block.name)) # each instruction is instantiated inside the cdfg
-		for bb_id in set([ bb_node.attr['bbID'] for bb_node in get_cdfg_nodes(self.cdfg) if bb_node.attr['bbID'] != '' ]): # iterating through the BB ids to recreate BB graph
+		for bb_id in set([ node.attr['bbID'] for node in get_cdfg_nodes(self.cdfg) if node.attr['bbID'] != '' ]): # iterating through the BB ids to recreate BB graph
 			self.cdfg.add_subgraph([ str(cdfg_node) for cdfg_node in get_cdfg_nodes(self.cdfg) if cdfg_node.attr['bbID'] == bb_id ], name = f'cluster_{bb_id}', color = 'darkgreen', label = bb_id)
 																															# associating to each node in the cdfg the corresponding BB id it belongs to
+		# creating the bb control signals between branch(es) and phi(s)
+		self.create_bb_control_signals()
 
 	# functio to parse each instruction
 	def parse_cdfg_instruction(self, instruction, cdfg, bbID):
@@ -136,6 +139,8 @@ class Parser():
 				else:
 					print("[ERROR] Identifying instruction '{0}'".format(instruction))
 
+				# update the dictionary containing the list of nodes per type
+				self.dic_nodes = update_dic_list(self.dic_nodes ,instruction_key, result.replace('%', '_'))
 				break
 				
 		result = result.replace('%', '_')
@@ -158,6 +163,19 @@ class Parser():
 				cdfg.add_edge(f'{input_}', f'{result}')
 				if DEBUG:
 					print("[DEBUG] Added constant node {0} and edge {0} -> {1}".format(input_, result))
+
+	# function to connect branch(es) with phi(s)
+	def create_bb_control_signals(self):
+		assert(self.dic_nodes != None) # check that the nodes dictionary has been already created
+		assert("br" in self.dic_nodes and "phi" in self.dic_nodes) # check that phi(s) and branch(es) have been already included
+		branch_nodes_list = self.dic_nodes["br"]
+		phi_nodes_list = self.dic_nodes["phi"]
+		for branch_name in branch_nodes_list:
+			for phi_name in phi_nodes_list:
+				branch_node = self.cdfg.get_node(branch_name)
+				phi_node = self.cdfg.get_node(phi_name)
+				if branch_node.attr['bbID'] == phi_node.attr['bbID']:
+					self.cdfg.add_edge(branch_node, phi_node, style="dashed")
 
 	#function to draw cdfg function representation of the ssa input file
 	def draw_cdfg(self, output_file = 'test.pdf', layout = 'dot'):
