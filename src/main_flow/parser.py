@@ -11,10 +11,42 @@ from src.utilities.regex import *
 from src.utilities.cdfg_manager import *
 
 
-DEBUG = False
+DEBUG = False # flag to print DEBUG information
+
+############################################################################################################################################
+############################################################################################################################################
+#
+#	`PARSER` CLASS
+#
+############################################################################################################################################
+#	DESCRIPTION:
+#					The following class is used as a parser of an IR (Intermediate Representation) of LLVM (https://llvm.org/). 
+# 					It elaborates the IR to generate a CDFG (Control DataFlow Graph) representation of the input function.
+#					Then, the CDFG is used in the following steps of the SDC project
+############################################################################################################################################
+#	ATTRIBUTES:
+#					- ssa_path : path location of the input SSA IR
+#					- example_name : name of the input function
+#					- assembly : text of the input SSA IR
+#					- top_function : name of the top function
+#					- function_inputs : inputs of the top function
+#					- cdfg : output CDFG of the parser
+#					- dic_nodes : dictionary of nodes per type
+############################################################################################################################################
+#	FUNCTIONS:
+#					- is_valid : check validity of the parser object
+#					- read_ssa_file : read the SSA IR input file
+# 					- set_top_function : set top_function name
+#					- create_cdfg : create CDFG output
+#					- parse_cdfg_instruction : parse instruction from SSA IR to create CDFG nodes and edges
+#					- create_bb_control_signals : create a control wire between BBs (connecting branch(es) and phi(s) )
+#					- draw_cdfg : represent CDFG in an output file
+############################################################################################################################################
+############################################################################################################################################
 
 class Parser():
 
+	# it takes as input the ssa_path where the SSA IR is located and the name of the input function 
 	def __init__(self, ssa_path, example_name):
 		self.ssa_path = ssa_path
 		self.example_name = example_name
@@ -175,7 +207,7 @@ class Parser():
 				branch_node = self.cdfg.get_node(branch_name)
 				phi_node = self.cdfg.get_node(phi_name)
 				if branch_node.attr['bbID'] == phi_node.attr['bbID']:
-					self.cdfg.add_edge(branch_node, phi_node, style="dashed")
+					self.cdfg = create_control_edge(self.cdfg, branch_node, phi_node)
 
 	#function to draw cdfg function representation of the ssa input file
 	def draw_cdfg(self, output_file = 'test.pdf', layout = 'dot'):
