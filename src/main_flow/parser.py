@@ -179,7 +179,7 @@ class Parser():
 		constants = [ op for op in operands if '%' not in op ] # constants are operands without initial '%' symbol
 		variables = [ op.replace('%', '_') for op in operands if '%' in op ] # variables are operands with initial '%' symbol
 		if result != '':
-			cdfg.add_node(f'{result}', label = label.replace('%', '_'), bbID = bbID, instruction = instruction.strip()) # add node related to the instruction
+			cdfg.add_node(f'{result}', label = label.replace('%', '_'), bbID = bbID, instruction = instruction.strip(), type=instruction_key) # add node related to the instruction
 			if DEBUG:
 				print("[DEBUG] Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
 			for input_ in variables: # add a node for each input variable if not present and the edge connecting it to result
@@ -191,7 +191,7 @@ class Parser():
 				if DEBUG:
 					print("[DEBUG] Added variable node {0} and edge {0} -> {1}".format(input_, result))
 			for input_ in constants: # add a node for each input constant and the edge connecting it to result
-				cdfg.add_node(f'{input_}', bbID = bbID)
+				cdfg.add_node(f'{input_}', bbID = bbID, type='constant')
 				cdfg.add_edge(f'{input_}', f'{result}')
 				if DEBUG:
 					print("[DEBUG] Added constant node {0} and edge {0} -> {1}".format(input_, result))
