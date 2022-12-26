@@ -40,15 +40,6 @@ $OPT -loop-rotate -constprop  $name"_mem2reg.ll" -S -o $name"_mem2reg_constprop.
 $OPT -simplifycfg $name"_mem2reg_constprop.ll" -S -o $name"_mem2reg_constprop_simplifycfg.ll"
 $OPT -die -instcombine -lowerswitch $name"_mem2reg_constprop_simplifycfg.ll" -S -o $name"_mem2reg_constprop_simplifycfg_die.ll" 
 
-# generate cfg
-$OPT -dot-cfg $name"_mem2reg_constprop_simplifycfg_die.ll" -disable-output
-
-find . -name "cfg.*.dot" | while read name; do
-	echo $name | grep $PROJ_NAME && mv $name "cfg.$PROJ_NAME.dot"
-done
-
-dot -Tpdf -O *.dot
-
 mv *.ll *.dot *.pdf ./reports 2> /dev/null
 
 } 2>&1 | tee output.log
