@@ -1,6 +1,6 @@
 import re, json
 import pygraphviz as pgv
-from llvmlite.binding import parse_assembly
+from llvmlite.binding import parse_assembly, get_function_cfg
 
 if __name__ == '__main__':
 	print("[ERROR] Use option --frontend with the run_SDC.py script to run only the parser")
@@ -54,7 +54,19 @@ class Parser():
 		self.read_ssa_file(ssa_path) #function to set the parser assembly
 		self.set_top_function(example_name) #it assumes that the filename corresponds to top function
 		self.create_cdfg()
-
+		self.create_cfg()
+	
+	def create_cfg(self):
+		#print(self.top_function)
+		raw_cfg = pgv.AGraph(get_function_cfg(self.top_function, False))
+		name_mapping = dict([ (n, re.search(r'\{([\w.]+)', n.attr['label']).group(1))
+			for n in get_cdfg_nodes(raw_cfg) ])
+		self.cfg = pgv.AGraph()
+		for n in get_cdfg_nodes(raw_cfg):
+			self.cfg.add_node(name_mapping[n])
+		for e in get_cdfg_edges(raw_cfg):
+			self.cfg.add_edge(name_mapping[e[0]], name_mapping[e[1]])
+	
 	#function to check validity of the parser
 	def is_valid(self):
 		valid = True
@@ -214,5 +226,7 @@ class Parser():
 		assert(not(self.cdfg is None))
 		self.cdfg.draw(output_file, prog=layout)
 		self.cdfg.write(output_file.replace('.pdf', '.dot'))
+		self.cfg.draw(output_file.replace('.pdf', '.cfg.pdf'), prog=layout)
+		self.cfg.write(output_file.replace('.pdf', '.cfg.dot'))
 		print("[Info] Printed cdfg in file {0} with layout {1}".format(output_file, layout))
 
