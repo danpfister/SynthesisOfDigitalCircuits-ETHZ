@@ -57,17 +57,17 @@ class Parser():
 		self.create_cdfg()
 	
 	def create_cfg(self):
-		#print(self.top_function)
 		self.cfg_id = dict([ (n.name, id_) for id_, n in enumerate(self.top_function.blocks) ])
-		print(self.cfg_id)
 		raw_cfg = pgv.AGraph(get_function_cfg(self.top_function, False))
-		name_mapping = dict([ (n, re.search(r'\{([\w.]+)', n.attr['label']).group(1))
+		_mapping = dict([ (n, re.search(r'\{([\w.]+)', n.attr['label']).group(1))
 			for n in get_cdfg_nodes(raw_cfg) ])
 		self.cfg = pgv.AGraph()
 		for n in get_cdfg_nodes(raw_cfg):
-			self.cfg.add_node(name_mapping[n])
+			name = _mapping[n]
+			id_ = self.cfg_id[name]
+			self.cfg.add_node(name, id=id_, label=f'BB{id_}\n({name})')
 		for e in get_cdfg_edges(raw_cfg):
-			self.cfg.add_edge(name_mapping[e[0]], name_mapping[e[1]])
+			self.cfg.add_edge(_mapping[e[0]], _mapping[e[1]])
 	
 	def is_backedge(self, n, v):
 		nid, vid = self.cdfg.get_node(n).attr['bbID'], self.cdfg.get_node(v).attr['bbID']
@@ -227,7 +227,6 @@ class Parser():
 				if branch_node.attr['bbID'] == phi_node.attr['bbID']:
 					self.cdfg = create_control_edge(self.cdfg, branch_node, phi_node)
 		for e in get_cdfg_edges(self.cdfg):
-			print(e)
 			if self.is_backedge(e[0], e[1]):
 				e.attr['style'] = 'dashed'
 
