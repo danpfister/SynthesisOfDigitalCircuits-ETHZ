@@ -1,6 +1,6 @@
 import re, json
 import pygraphviz as pgv
-from llvmlite.binding import parse_assembly
+from llvmlite.binding import parse_assembly, get_function_cfg
 
 if __name__ == '__main__':
 	print("[ERROR] Use option --frontend with the run_SDC.py script to run only the parser")
@@ -53,8 +53,26 @@ class Parser():
 
 		self.read_ssa_file(ssa_path) #function to set the parser assembly
 		self.set_top_function(example_name) #it assumes that the filename corresponds to top function
+		self.create_cfg()
 		self.create_cdfg()
-
+	
+	def create_cfg(self):
+		self.cfg_id = dict([ (n.name, id_) for id_, n in enumerate(self.top_function.blocks) ])
+		raw_cfg = pgv.AGraph(get_function_cfg(self.top_function, False))
+		_mapping = dict([ (n, re.search(r'\{([\w.]+)', n.attr['label']).group(1))
+			for n in get_cdfg_nodes(raw_cfg) ])
+		self.cfg = pgv.AGraph()
+		for n in get_cdfg_nodes(raw_cfg):
+			name = _mapping[n]
+			id_ = self.cfg_id[name]
+			self.cfg.add_node(name, id=id_, label=f'BB{id_}\n({name})')
+		for e in get_cdfg_edges(raw_cfg):
+			self.cfg.add_edge(_mapping[e[0]], _mapping[e[1]])
+	
+	def is_backedge(self, n, v):
+		nid, vid = self.cdfg.get_node(n).attr['bbID'], self.cdfg.get_node(v).attr['bbID']
+		return n.attr['type'] != 'constant' and v.attr['type'] == 'phi' and self.cfg_id[nid] >= self.cfg_id[vid]
+	
 	#function to check validity of the parser
 	def is_valid(self):
 		valid = True
@@ -179,7 +197,7 @@ class Parser():
 		constants = [ op for op in operands if '%' not in op ] # constants are operands without initial '%' symbol
 		variables = [ op.replace('%', '_') for op in operands if '%' in op ] # variables are operands with initial '%' symbol
 		if result != '':
-			cdfg.add_node(f'{result}', label = label.replace('%', '_'), bbID = bbID, instruction = instruction.strip()) # add node related to the instruction
+			cdfg.add_node(f'{result}', label = label.replace('%', '_'), bbID = bbID, instruction = instruction.strip(), type=instruction_key) # add node related to the instruction
 			if DEBUG:
 				print("[DEBUG] Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
 			for input_ in variables: # add a node for each input variable if not present and the edge connecting it to result
@@ -191,7 +209,7 @@ class Parser():
 				if DEBUG:
 					print("[DEBUG] Added variable node {0} and edge {0} -> {1}".format(input_, result))
 			for input_ in constants: # add a node for each input constant and the edge connecting it to result
-				cdfg.add_node(f'{input_}', bbID = bbID)
+				cdfg.add_node(f'{input_}', bbID = bbID, type='constant')
 				cdfg.add_edge(f'{input_}', f'{result}')
 				if DEBUG:
 					print("[DEBUG] Added constant node {0} and edge {0} -> {1}".format(input_, result))
@@ -208,11 +226,16 @@ class Parser():
 				phi_node = self.cdfg.get_node(phi_name)
 				if branch_node.attr['bbID'] == phi_node.attr['bbID']:
 					self.cdfg = create_control_edge(self.cdfg, branch_node, phi_node)
+		for e in get_cdfg_edges(self.cdfg):
+			if self.is_backedge(e[0], e[1]):
+				e.attr['style'] = 'dashed'
 
 	#function to draw cdfg function representation of the ssa input file
 	def draw_cdfg(self, output_file = 'test.pdf', layout = 'dot'):
 		assert(not(self.cdfg is None))
 		self.cdfg.draw(output_file, prog=layout)
 		self.cdfg.write(output_file.replace('.pdf', '.dot'))
+		self.cfg.draw(output_file.replace('.pdf', '.cfg.pdf'), prog=layout)
+		self.cfg.write(output_file.replace('.pdf', '.cfg.dot'))
 		print("[Info] Printed cdfg in file {0} with layout {1}".format(output_file, layout))
 
