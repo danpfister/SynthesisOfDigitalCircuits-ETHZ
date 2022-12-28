@@ -23,14 +23,6 @@ On Ubuntu machines, you can get the required dependencies via package manager:
 sudo apt-get install graphviz graphviz-dev
 ``` 
 
-### Cbc (A MILP Solver)
-
-On Ubuntu machines, you can get the required dependencies via package manager:
-
-```sh
-sudo apt-get install cbc
-``` 
-
 ### Python
 ```
 python 3.7
