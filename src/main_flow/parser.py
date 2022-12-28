@@ -1,4 +1,4 @@
-import re, json
+import re
 import pygraphviz as pgv
 from llvmlite.binding import parse_assembly, get_function_cfg
 
@@ -30,6 +30,8 @@ DEBUG = False # flag to print DEBUG information
 #					- assembly : text of the input SSA IR
 #					- top_function : name of the top function
 #					- function_inputs : inputs of the top function
+#					- cfg : output CFG of the parser
+#					- dic_bbID : dictionary of bb_IDNumber per bbID
 #					- cdfg : output CDFG of the parser
 #					- dic_nodes : dictionary of nodes per type
 ############################################################################################################################################
@@ -37,6 +39,8 @@ DEBUG = False # flag to print DEBUG information
 #					- is_valid : check validity of the parser object
 #					- read_ssa_file : read the SSA IR input file
 # 					- set_top_function : set top_function name
+#					- create_cfg : create control flow graph of the SSA IR input file
+#					- is_backedge : check if the edge is a back edge
 #					- create_cdfg : create CDFG output
 #					- parse_cdfg_instruction : parse instruction from SSA IR to create CDFG nodes and edges
 #					- create_bb_control_signals : create a control wire between BBs (connecting branch(es) and phi(s) )
@@ -53,25 +57,8 @@ class Parser():
 
 		self.read_ssa_file(ssa_path) #function to set the parser assembly
 		self.set_top_function(example_name) #it assumes that the filename corresponds to top function
-		self.create_cfg()
-		self.create_cdfg()
-	
-	def create_cfg(self):
-		self.cfg_id = dict([ (n.name, id_) for id_, n in enumerate(self.top_function.blocks) ])
-		raw_cfg = pgv.AGraph(get_function_cfg(self.top_function, False))
-		_mapping = dict([ (n, re.search(r'\{([\w.]+)', n.attr['label']).group(1))
-			for n in get_cdfg_nodes(raw_cfg) ])
-		self.cfg = pgv.AGraph()
-		for n in get_cdfg_nodes(raw_cfg):
-			name = _mapping[n]
-			id_ = self.cfg_id[name]
-			self.cfg.add_node(name, id=id_, label=f'BB{id_}\n({name})')
-		for e in get_cdfg_edges(raw_cfg):
-			self.cfg.add_edge(_mapping[e[0]], _mapping[e[1]])
-	
-	def is_backedge(self, n, v):
-		nid, vid = self.cdfg.get_node(n).attr['bbID'], self.cdfg.get_node(v).attr['bbID']
-		return n.attr['type'] != 'constant' and v.attr['type'] == 'phi' and self.cfg_id[nid] >= self.cfg_id[vid]
+		self.create_cfg() # it generates the control flow graph
+		self.create_cdfg() # it generates the control data flow graph
 	
 	#function to check validity of the parser
 	def is_valid(self):
@@ -112,6 +99,31 @@ class Parser():
 						for i in range(len(splitted_matched_string)):
 							if i % 2 != 0:
 								self.function_inputs.append(splitted_matched_string[i].replace(",","").replace(")","").replace("%","_"))
+
+	# function to create control flow graph of the assembly code
+	def create_cfg(self):
+		# generating dictionary containing the bbID as keys and bb_IDNum as value ( for example bbID is 'entry' and bb_IDNum is 0)
+		self.dic_bbID = dict([ (bb_node.name, bb_IDNum) for bb_IDNum, bb_node in enumerate(self.top_function.blocks) ])
+		init_cfg = pgv.AGraph(get_function_cfg(self.top_function, False)) # obtaining initial cfg from pygraphviz
+		# dictionary with bb_node instance as keys and bb_label as values
+		dic_bbNode_bbLabel = dict([ (bb_node, re.search(r'\{([\w.]+)', bb_node.attr['label']).group(1)) for bb_node in get_cdfg_nodes(init_cfg) ])
+		self.cfg = pgv.AGraph() # empty graph
+		for bbNode in get_cdfg_nodes(init_cfg):
+			label = dic_bbNode_bbLabel[bbNode] # label of bb_node instance
+			idNum = self.dic_bbID[label] # id number of bb_node instance
+			self.cfg.add_node(label, id=idNum, label=f'BB{idNum}\n({label})') # adding node in CFG 
+		for bb_edge in get_cdfg_edges(init_cfg): # add each BB edge in the CFG 
+			bb_src = bb_edge[0]
+			bb_dst = bb_edge[1]
+			self.cfg.add_edge(dic_bbNode_bbLabel[bb_src], dic_bbNode_bbLabel[bb_dst])
+	
+	# function to check if the edge is backedge
+	def is_backedge(self, src, dst):
+		src_bbID, dst_bbID = self.cdfg.get_node(src).attr['bbID'], self.cdfg.get_node(dst).attr['bbID'] # retrieve src and dst bbID
+		is_src_not_cst = src.attr['type'] != 'constant' # the src shouldn't be a constant
+		is_dst_phi = dst.attr['type'] == 'phi' # the dst should be a 'phi' type node
+		bbID_cons_order = self.dic_bbID[src_bbID] >= self.dic_bbID[dst_bbID] # the BB id of the src should be the same or later one than the one of dst
+		return is_src_not_cst and is_dst_phi and bbID_cons_order
 
 	#function to create the cdfg representation of the assembly code
 	def create_cdfg(self):
@@ -233,9 +245,11 @@ class Parser():
 	#function to draw cdfg function representation of the ssa input file
 	def draw_cdfg(self, output_file = 'test.pdf', layout = 'dot'):
 		assert(not(self.cdfg is None))
-		self.cdfg.draw(output_file, prog=layout)
-		self.cdfg.write(output_file.replace('.pdf', '.dot'))
-		self.cfg.draw(output_file.replace('.pdf', '.cfg.pdf'), prog=layout)
-		self.cfg.write(output_file.replace('.pdf', '.cfg.dot'))
-		print("[Info] Printed cdfg in file {0} with layout {1}".format(output_file, layout))
+		self.cdfg.draw(output_file, prog=layout) # drawing cdfg in the .pdf file
+		self.cdfg.write(output_file.replace('.pdf', '.dot')) # describing cdfg in dot file
+		print("[Info] Printed cdfg in file {0} with layout {1}. Its dot representation is in file {2}".format(output_file, layout, output_file.replace('.pdf','.dot')))
+		cfg_filename = output_file.replace('.pdf', '.cfg.pdf') 
+		self.cfg.draw(cfg_filename, prog=layout) # drawing cfg in the .pdf file
+		self.cfg.write(cfg_filename.replace('.pdf', '.dot')) # describing cfg in dot file
+		print("[Info] Printed cfg in file {0} with layout {1}. Its dot representation is in file {2}".format(cfg_filename, layout, cfg_filename.replace('.pdf','.dot')))
 

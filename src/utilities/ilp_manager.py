@@ -141,12 +141,16 @@ class Constraint_Set:
 #				- model_name : name of the ILP model
 #				- model : ILP model
 #				- variables : ILP variables
+#				- opt_function : optimization function
+#				- constraints : constraints set
 ############################################################################################################################################
 #	FUNCTIONS:
 #				- set_solver : set the ILP solver
 #				- get_solver : get the ILP solver
 #				- add_variable : add an ILP variable
 #				- remove_variable : remove an ILP variable
+#				- get_variables_list : get the list of variables
+#				- set_optimization_function : set the optimization function
 ############################################################################################################################################
 ############################################################################################################################################
 
