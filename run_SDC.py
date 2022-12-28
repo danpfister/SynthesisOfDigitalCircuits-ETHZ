@@ -1,6 +1,7 @@
 #!/bin/python3
 import argparse
 from src.main_flow.parser import Parser
+from src.main_flow.scheduler import Scheduler
 
 def main(args):
 	frontend_only = args.frontend
@@ -26,6 +27,9 @@ def main(args):
 			print("[ERROR] Parser has encountered a problem. Please verify path correctness ({0})".format(path_ssa_example))
 			continue
 		ssa_parser.draw_cdfg("{0}/{1}/test.pdf".format(base_path, example_name))
+
+		scheduler = Scheduler()
+		scheduler.test(base_path, example_name)
 
 	if frontend_only:
 		print("[Info] Early execution termination\n\nBye :)")
