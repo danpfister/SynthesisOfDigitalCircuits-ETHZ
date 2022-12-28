@@ -45,6 +45,8 @@ DEBUG = False # flag to print DEBUG information
 #					- parse_cdfg_instruction : parse instruction from SSA IR to create CDFG nodes and edges
 #					- create_bb_control_signals : create a control wire between BBs (connecting branch(es) and phi(s) )
 #					- draw_cdfg : represent CDFG in an output file
+#					- get_cdfg : get CDFG output
+#					- get_cfg : get CFG output
 ############################################################################################################################################
 ############################################################################################################################################
 
@@ -253,3 +255,10 @@ class Parser():
 		self.cfg.write(cfg_filename.replace('.pdf', '.dot')) # describing cfg in dot file
 		print("[Info] Printed cfg in file {0} with layout {1}. Its dot representation is in file {2}".format(cfg_filename, layout, cfg_filename.replace('.pdf','.dot')))
 
+	#function to get cdfg
+	def get_cdfg(self):
+		return self.cdfg
+
+	#function to get cfg
+	def get_cfg(self):
+		return self.cfg
