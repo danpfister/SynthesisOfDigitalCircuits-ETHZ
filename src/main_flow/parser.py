@@ -217,15 +217,15 @@ class Parser():
 				print("[DEBUG] Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
 			for input_ in variables: # add a node for each input variable if not present and the edge connecting it to result
 				if input_ in self.function_inputs: # if the variable is a function input, the bbid is assigned depending on last operation calling it
-					cdfg.add_node(f'{input_}', bbID = bbID)					
+					cdfg.add_node(f'{input_}', bbID = bbID)
 				else:
 					cdfg.add_node(f'{input_}')
 				cdfg.add_edge(f'{input_}', f'{result}')
 				if DEBUG:
 					print("[DEBUG] Added variable node {0} and edge {0} -> {1}".format(input_, result))
-			for input_ in constants: # add a node for each input constant and the edge connecting it to result
-				cdfg.add_node(f'{input_}', bbID = bbID, type='constant')
-				cdfg.add_edge(f'{input_}', f'{result}')
+			for cst_id_, input_ in enumerate(constants): # add a node for each input constant and the edge connecting it to result, each constant should have an unique identifier to distinguish
+				cdfg.add_node(f'cst_{result}_{cst_id_}', id = self.dic_bbID[bbID], bbID = bbID,  type='constant', label=f'{input_}', value=f'{cst_id_}')
+				cdfg.add_edge(f'cst_{result}_{cst_id_}', f'{result}')
 				if DEBUG:
 					print("[DEBUG] Added constant node {0} and edge {0} -> {1}".format(input_, result))
 
