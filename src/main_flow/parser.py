@@ -216,8 +216,8 @@ class Parser():
 			if DEBUG:
 				print("[DEBUG] Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
 			for input_ in variables: # add a node for each input variable if not present and the edge connecting it to result
-				if input_ in self.function_inputs: # if the variable is a function input, the bbid is assigned depending on last operation calling it
-					cdfg.add_node(f'{input_}', bbID = bbID)
+				if input_ in self.function_inputs: # if the variable is a function input, the bbid is assigned depending on last operation calling it, and we call the type of this variable "argument"
+					cdfg.add_node(f'{input_}', id = self.dic_bbID[bbID], bbID = bbID, type='argument')
 				else:
 					cdfg.add_node(f'{input_}')
 				cdfg.add_edge(f'{input_}', f'{result}')
