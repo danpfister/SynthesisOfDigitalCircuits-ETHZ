@@ -211,7 +211,8 @@ class Parser():
 		constants = [ op for op in operands if '%' not in op ] # constants are operands without initial '%' symbol
 		variables = [ op.replace('%', '_') for op in operands if '%' in op ] # variables are operands with initial '%' symbol
 		if result != '':
-			cdfg.add_node(f'{result}', label = label.replace('%', '_'), bbID = bbID, instruction = instruction.strip(), type=instruction_key) # add node related to the instruction
+			
+			cdfg.add_node(f'{result}', label = label.replace('%', '_'), id = self.dic_bbID[bbID], bbID = bbID, instruction = instruction.strip(), type=instruction_key) # add node related to the instruction
 			if DEBUG:
 				print("[DEBUG] Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
 			for input_ in variables: # add a node for each input variable if not present and the edge connecting it to result
