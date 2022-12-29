@@ -6,6 +6,9 @@
 *.cfg
 *.s
 *.lp
-reports/
+*.png
+*.jpg
+*.jpeg
 *.pdf
+reports/
 __pycache__/
