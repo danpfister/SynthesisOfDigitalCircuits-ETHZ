@@ -5,6 +5,7 @@
 *.ssa
 *.cfg
 *.s
+*.lp
 reports/
 *.pdf
 __pycache__/
