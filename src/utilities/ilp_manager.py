@@ -219,7 +219,7 @@ class ILP:
 		if not(var_type in var_type_dic):
 			print("[ERROR] ILP variable has only 3 var_type: i(nteger), b(inary) and c(continuous)")
 			return
-		var = ilp.LpVariable(var_name, upper_bound, lower_bound, var_type_dic[var_type])
+		var = ilp.LpVariable(var_name, lower_bound, upper_bound, var_type_dic[var_type])
 		self.variables[var_name] = var
 	
 	# function to remove an ILP variable
