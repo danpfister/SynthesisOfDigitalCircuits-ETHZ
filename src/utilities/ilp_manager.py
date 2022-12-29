@@ -1,5 +1,15 @@
 import pulp as ilp
 
+# function to check if `n` is a number or not
+def is_number(n):
+	if n == None:
+		return False
+	try:
+		c = float(n)
+		return True
+	except ValueError:
+		return False
+
 ############################################################################################################################################
 ############################################################################################################################################
 #
@@ -52,7 +62,7 @@ class Opt_Function:
 		if not(var_name in self.ilp_obj.get_variables_list()):
 			print("[ERROR] Variable not present in the ILP object")
 			return
-		if not(str(coeff).isnumeric()):
+		if not(is_number(coeff)):
 			print("[ERROR] Coefficient {0} is not numeric!".format(coeff))
 			return
 		if var_name in self.function_coeff:
@@ -118,10 +128,10 @@ class Constraint_Set:
 				print("[ERROR] Disequality sign {0} is not allowerd. Allowed signs = {1}".format(dis_sign, disequality_signs.keys()))
 				return None
 			coefficient = coeff_list[var_name]
-			if not(str(coefficient).isnumeric()):
+			if not(is_number(coefficient)):
 				print("[ERROR] Coefficient {0} of variable {1} is not numeric".format(coeff_list[var_name], var_name))
 				return None
-			if not(str(right_constant).isnumeric()):
+			if not(is_number(right_constant)):
 				print("[ERROR] Right Coefficient of the constraint {0} is not numeric".format(right_constant))
 				return None
 			# the constraint is a dictionary with variables as keys and coefficients as values
@@ -203,8 +213,8 @@ class ILP:
 	# function to add an ILP variable
 	def add_variable(self, var_name, lower_bound = None, upper_bound = None, var_type = 'c'):
 		assert(not(var_name in self.variables)) # check that var_name is not in the list of variables
-		assert(str(upper_bound).isnumeric() or upper_bound == None) # assert that upper bound is numeric or None
-		assert(str(lower_bound).isnumeric() or lower_bound == None) # assert that lower bound is numeric or None
+		assert(is_number(upper_bound) or upper_bound == None) # assert that upper bound is numeric or None
+		assert(is_number(lower_bound) or lower_bound == None) # assert that lower bound is numeric or None
 		var_type_dic = {'i':"Integer", 'b': "Binary", 'c':"Continuous"} # dictionary to associate char to var_type
 		if not(var_type in var_type_dic):
 			print("[ERROR] ILP variable has only 3 var_type: i(nteger), b(inary) and c(continuous)")
