@@ -29,7 +29,7 @@ def main(args):
 		ssa_parser.draw_cdfg("{0}/{1}/test.pdf".format(base_path, example_name))
 
 		scheduler = Scheduler(ssa_parser, "no_pipeline")
-		scheduler.ilp_test(base_path, example_name)
+		scheduler.ilp_test2(base_path, example_name)
 
 	if frontend_only:
 		print("[Info] Early execution termination\n\nBye :)")
