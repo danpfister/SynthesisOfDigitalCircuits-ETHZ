@@ -5,14 +5,27 @@
 #
 ############################################################################################################################################
 #	FUNCTIONS:
+#				- get_node_latency : retrieve a synthetic latency from the attribute of the cdfg node
 #				- get_cdfg_edges : retrieve edges of cdfg
 #				- get_cdfg_nodes : retrieve nodes of cdfg
 #				- update_dic_list : update the value of a key (where the value is a list)
 #				- create_control_edge : create a control edge between src and dst in the cdfg
 #				- is_control_edge : check if edge between src and dst is a control edge
+#				- get_topological_order : assume that the input graph is a DAG, return the topological order of the nodes
 ############################################################################################################################################
 ############################################################################################################################################
 
+
+# function to retrieve the delay from the type
+def get_node_latency(attr):
+	if attr['type'] == 'mul':
+		return 4
+	elif attr['type'] == 'load':
+		return 1
+	elif attr['type'] in ('br', 'supersink', 'supersource', 'phi', ):
+		return 0
+	else:
+		return 1
 
 # function to retrieve edges of cdfg
 def get_cdfg_edges(cdfg):
