@@ -1,5 +1,6 @@
 import re
 import pygraphviz as pgv
+import logging
 from llvmlite.binding import parse_assembly, get_function_cfg
 
 if __name__ == '__main__':
@@ -9,6 +10,8 @@ if __name__ == '__main__':
 # this imports are relative to SDC main path, so they shouldn't be run if the script run on its own
 from src.utilities.regex import *
 from src.utilities.cdfg_manager import *
+
+log=logging.getLogger('sdc.parser')
 
 
 DEBUG = False # flag to print DEBUG information
@@ -93,8 +96,9 @@ class Parser():
 				# finding and setting inputs of function
 				for line in str(function).split("\n"):
 					if "define" in line and top_function_name in line:
-						input_regex = r'\(((, )?(\S+)\* %(\S+))*\)'
+						input_regex = r'\(((, )?(\S+)\*? %(\S+))*\)'
 						match_input = re.search(input_regex, line)
+						if not match_input: log.error(f'line that failed to match: {line}')
 						matched_string = match_input.group()
 						splitted_matched_string = matched_string.split()
 						self.function_inputs = []
@@ -135,13 +139,22 @@ class Parser():
 		for basic_block in self.top_function.blocks: #iterate trough basic blocks to generate the cdfg with instructions as nodes
 			for instruction in basic_block.instructions:
 				self.parse_cdfg_instruction(str(instruction), self.cdfg, str(basic_block.name)) # each instruction is instantiated inside the cdfg
+
+
+		entry_bb_label, entry_bb_num = [ (bb_name, bb_num) for bb_name, bb_num in self.dic_bbID.items() if bb_num == 0 ][0]
+		for arg in get_cdfg_nodes(self.cdfg):
+			if arg.attr['type'] == 'argument':
+				arg.attr['bbID'] = entry_bb_label
+				arg.attr['id'] = entry_bb_num
+
 		for bb_id in set([ node.attr['bbID'] for node in get_cdfg_nodes(self.cdfg) if node.attr['bbID'] != '' ]): # iterating through the BB ids to recreate BB graph
 			self.cdfg.add_subgraph([ str(cdfg_node) for cdfg_node in get_cdfg_nodes(self.cdfg) if cdfg_node.attr['bbID'] == bb_id ], name = f'cluster_{bb_id}', color = 'darkgreen', label = bb_id)
-																															# associating to each node in the cdfg the corresponding BB id it belongs to
+			# associating to each node in the cdfg the corresponding BB id it belongs to
+		
 		# creating the bb control signals between branch(es) and phi(s)
 		self.create_bb_control_signals()
 
-	# functio to parse each instruction
+	# function to parse each instruction
 	def parse_cdfg_instruction(self, instruction, cdfg, bbID):
 		assert type(instruction) == str # the instruction input type should be string
 		operands, result, label = [], '', instruction
@@ -211,13 +224,14 @@ class Parser():
 		constants = [ op for op in operands if '%' not in op ] # constants are operands without initial '%' symbol
 		variables = [ op.replace('%', '_') for op in operands if '%' in op ] # variables are operands with initial '%' symbol
 		if result != '':
-			
 			cdfg.add_node(f'{result}', label = label.replace('%', '_'), id = self.dic_bbID[bbID], bbID = bbID, instruction = instruction.strip(), type=instruction_key) # add node related to the instruction
 			if DEBUG:
 				print("[DEBUG] Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
 			for input_ in variables: # add a node for each input variable if not present and the edge connecting it to result
-				if input_ in self.function_inputs: # if the variable is a function input, the bbid is assigned depending on last operation calling it, and we call the type of this variable "argument"
-					cdfg.add_node(f'{input_}', id = self.dic_bbID[bbID], bbID = bbID, type='argument')
+				if input_ in self.function_inputs: 
+					# if the variable is a function input, the bbid is assigned depending on last operation calling it, and we call the type of this variable "argument"
+					#cdfg.add_node(f'{input_}', id = self.dic_bbID[bbID], bbID = bbID, type='argument')
+					cdfg.add_node(f'{input_}', type='argument')
 				else:
 					cdfg.add_node(f'{input_}')
 				cdfg.add_edge(f'{input_}', f'{result}')
