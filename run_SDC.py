@@ -2,13 +2,31 @@
 import argparse
 from src.main_flow.parser import Parser
 from src.main_flow.scheduler import Scheduler
+import logging
+
+log = logging.getLogger('sdc')
+log.setLevel(logging.DEBUG)
+
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# add formatter to ch
+ch.setFormatter(formatter)
+
+# add ch to log
+log.addHandler(ch)
 
 def main(args):
 	frontend_only = args.frontend
 	input_list = args.input_list
 	base_path = args.examples_folder
 
-	print("Arguments selected:\n\tINPUT LIST = {0}\n\tEXAMPLE FOLDER PATH = {1}\n\tONLY FRONTEND = {2}".format(frontend_only, base_path, input_list))
+	log.info("Arguments selected:\n\tINPUT LIST = {0}\n\tEXAMPLE FOLDER PATH = {1}\n\tONLY FRONTEND = {2}".format(frontend_only, base_path, input_list))
+	print("[INFO] Arguments selected:\n\tINPUT LIST = {0}\n\tEXAMPLE FOLDER PATH = {1}\n\tONLY FRONTEND = {2}".format(frontend_only, base_path, input_list))
 
 	#reading the list of examples to execute
 	examples_list_file = open(input_list, "r")
@@ -18,18 +36,24 @@ def main(args):
 	for example_name in examples_list:
 		if example_name == "":
 			continue
-		# the path of the ssa file should be base_path/example_name/reports/example_name.cpp_mem2reg_constprop_simplifycfg_die.ll	
+		# the path of the ssa file should be base_path/example_name/reports/example_name.cpp_mem2reg_constprop_simplifycfg_die.ll
 		path_ssa_example = "{0}/{1}/reports/{1}.cpp_mem2reg_constprop_simplifycfg_die.ll".format(base_path, example_name)
 
+		log.info("Parsing file {0}".format(path_ssa_example)) 
 		print("[Info] Parsing file {0}".format(path_ssa_example))
 		ssa_parser = Parser(path_ssa_example, example_name)
 		if not(ssa_parser.is_valid()):
+			log.error("Parser has encountered a problem. Please verify path correctness ({0})".format(path_ssa_example))
 			print("[ERROR] Parser has encountered a problem. Please verify path correctness ({0})".format(path_ssa_example))
 			continue
 		ssa_parser.draw_cdfg("{0}/{1}/test.pdf".format(base_path, example_name))
 
-		scheduler = Scheduler(ssa_parser, "no_pipeline")
-		scheduler.ilp_test2(base_path, example_name)
+		scheduler = Scheduler(ssa_parser, "pipelined")
+		scheduler.set_data_dependency_constraints()
+		scheduler.set_resource_constraints()
+		scheduler.set_II_constraints()
+		scheduler.set_opt_function()
+		scheduler.find_optimal_schedule(base_path, example_name)
 
 	if frontend_only:
 		print("[Info] Early execution termination\n\nBye :)")
