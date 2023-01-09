@@ -22,7 +22,7 @@ def get_node_latency(attr):
 		return 4
 	elif attr['type'] == 'load':
 		return 1
-	elif attr['type'] in ('br', 'supersink', 'supersource', 'phi', ):
+	elif attr['type'] in ('br', 'supersink', 'supersource', 'phi', 'constant'):
 		return 0
 	else:
 		return 1
@@ -34,6 +34,24 @@ def get_cdfg_edges(cdfg):
 # function to retrieve nodes of cdfg
 def get_cdfg_nodes(cdfg):
 	return map(lambda n : cdfg.get_node(n), cdfg.nodes())
+
+# function to retrieve all dag edges of cdfg
+# TODO: maybe we change the way of identifying if an edge is a backedge or not
+def get_dag_edges(cdfg):
+	is_dag_edges = lambda e : e.attr['style'] != 'dashed'
+	return filter(is_dag_edges, get_cdfg_edges(cdfg))
+
+# function to retrieve all the bak edges that are not in the DAG
+# for deriving the II constraint
+# in addition, only the data-back edges are considered, therefore branches
+# are removed
+def get_bak_edges(cdfg):
+	is_bak_edges = lambda e : e.attr['style'] == 'dashed'
+	return filter(is_bak_edges, get_cdfg_edges(cdfg))
+
+
+
+
 
 # function to update the value of a key (where the value is a list)
 def update_dic_list(dic, key, new_element):
