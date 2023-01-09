@@ -40,3 +40,31 @@ def create_control_edge(cdfg, src, dst):
 # function to check if edge between src and dst is a control edge
 def is_control_edge(cdfg, src, dst):
 	pass
+
+
+''' assume that the input graph is a DAG, return topological ordering among the nodes
+	https://en.wikipedia.org/wiki/Topological_sorting#Depth-first_search '''
+
+def get_topological_order(cdfg):
+	print(type(cdfg))
+	# node_list: historical ordering
+	# temp_list: a DFS run
+	node_list, temp_list = [], []
+	def visit(node):
+		if node in node_list:
+			return
+		assert node not in temp_list, 'error - the CDFG graph still has at least one cycle!'
+		temp_list.append(node)
+		for e in get_cdfg_edges(cdfg):
+			# skip to visit the dashed edges: they are for sure cyclic
+			if e[0] == node and not ('style' in e.attr and e.attr['style'] == 'dashed'): 
+				visit(e[1])
+		node_list.insert(0, node)
+		temp_list.remove(node)
+	
+	# we call a separate DFS per each node
+	for node in get_cdfg_nodes(cdfg): 
+		if node not in node_list:
+			visit(node)
+	
+	return node_list
