@@ -1,6 +1,10 @@
 from src.utilities.ilp_manager import *
 from src.utilities.cdfg_manager import *
+from src.utilities.logger import get_logger
 from pprint import pprint
+import re
+
+log = get_logger('sdc.scheduler') # logger
 
 ############################################################################################################################################
 ############################################################################################################################################
@@ -25,6 +29,7 @@ from pprint import pprint
 ############################################################################################################################################
 
 scheduling_techniques = ["no_pipeline"]
+
 
 class Scheduler:
 
@@ -112,8 +117,55 @@ class Scheduler:
 			if e.attr['style'] != 'dashed':
 				n, v = self.cdfg.get_node(e[0]), self.cdfg.get_node(e[1])
 				# sv_v >= sv_n + latency; assume that the latency of each operation is 1 for now
-				constraints.add_constraint({f'sv{n}' : -1, f'sv{v}' : 1}, "geq", (1 if n.attr['type'] not in ('supersource', 'supersink') else 0)) 
+				constraints.add_constraint({f'sv{n}' : -1, f'sv{v}' : 1}, "geq", get_node_latency(n.attr) )
 		# ===================== Dependency Constraints ====================== #
+
+		# ===================== Resource Constraints ================ #
+		""" 
+		exact resource-constraint scheduling is NP-hard to compute. we use 
+		a heuristic operates on linear ordering of operations:
+
+		suppose for operation mul, we have only 2 available resources for mul:
+		(1) identify a linear ordering between operations inside BB of interest:
+			mul_0, mul_1, mul_2, mul_3, mul_4
+		(2) for every pair of nodes that require mul, we count the number of mul's within them
+			Between(mul_0, mul_2) = { mul_1 }
+		(3) check if in the set Between(), there are RESOURCE(mul) - 1 nodes:
+			RESOURCE(mul) - 1 = 1, which is the same as Between(mul_0, mul_2)
+		(4) then, we add an additional constaint to enforce that mul_0 and mul_2 can't be scheduled together
+			sv_(mul_0) + lat_(mul_0) <= sv_(mul_2)
+		"""
+		topological_order = get_topological_order(self.cdfg)
+		print(topological_order)
+		log.debug(f'topological ordering: {topological_order}')
+		# assume the following resource constraints:
+		# load port <= 1; adders <= 2;
+		resource_constraint = { 'load' : 2, 'add' : 1 }
+
+		# resource constraints are done within each BB
+		for bb in get_cdfg_nodes(self.cfg):
+			for res, max_ in resource_constraint.items():
+				log.debug(f'adding resource constaint: {res} has maximum of {max_} inside BB {bb}')
+				# get all the nodes that have resource type res inside the bb
+				res_topological_order = [ n for n in topological_order
+					if self.cdfg.get_node(n).attr['type'] == res and self.cdfg.get_node(n).attr['bbID'] == bb ]
+				log.debug(f'nodes of type {res} in BB {bb}: {res_topological_order}')
+				# (2), (3): for each pair of nodes that have (RESOURCE - 1) nodes in between
+				for i in range(len(res_topological_order)):
+					n = res_topological_order[i]
+					try:
+						v = res_topological_order[ i + max_ ]
+					except IndexError:
+						continue
+					'''
+					n dominates v in topological order, and there are already RESOURCE number of operations before v
+					
+					'''
+					log.debug(f'resource constraint between {n} and {v}')
+					# (4): add constraint
+					constraints.add_constraint({f'sv{n}' : -1, f'sv{v}' : 1}, "geq", get_node_latency(n.attr) )
+
+		# ===================== Resource Constraints ================ #
 
 		for e in backedges: # for II constraints, we need to add the backedges back into the graph
 			self.cdfg.add_edge(*e[0], **e[1])
@@ -137,7 +189,7 @@ class Scheduler:
 				assert n.attr['bbID'] == v.attr['bbID'], 'sanity check failed: II defined only for single BB for now'
 				# sv_n + latency_u <= sv_v + II * Dist; if there is an back edge assume that for now the dependencies from the back edges all have dist = 1
 				# TODO: determine the dependency distance?
-				constraints.add_constraint({ f'sv{n}' : -1, f'sv{v}' : 1, f'II_{n.attr["bbID"]}' : 1 }, "geq", (1 if n.attr['type'] not in ('supersource', 'supersink') else 0)) 
+				constraints.add_constraint({ f'sv{n}' : -1, f'sv{v}' : 1, f'II_{n.attr["bbID"]}' : 1 }, "geq", get_node_latency(n.attr)) 
 		# ===================== II Constraints ====================== #
 
 		fun = Opt_Function(ilp)
@@ -160,13 +212,19 @@ class Scheduler:
 		# ======================== II Minimization Objective ===============================#
 
 		# log the result
-		self.cdfg.draw("test_dag.pdf", prog="dot")
 		ilp.print_ilp("{0}/{1}/output.lp".format(base_path, example_name))
 		res = ilp.solve_ilp()
-		print(res)
-		pprint(ilp.get_ilp_solution())
+		for var, value in ilp.get_ilp_solution().items():
+			type_ = 'AUX'
+			if re.search(r'^sv', var):
+				node_name = re.sub(r'^sv', '', var)
+				attr = self.cdfg.get_node(node_name).attr
+				type_ = attr['type']
+				attr['label'] = attr['label'] + '\n' + f'[{value}]'
+			log.info(f'{var} of type {type_}:= {value}')
+		self.cdfg.draw("test_dag.pdf", prog="dot")
 		if 'max_latency' in ilp.get_ilp_solution():
-			print(f'the maximum latency for this cdfg is {ilp.get_ilp_solution()["max_latency"]}')
+			log.info(f'the maximum latency for this cdfg is {ilp.get_ilp_solution()["max_latency"]}')
 		elif 'max_II' in ilp.get_ilp_solution():
-			print(f'the maximum II for this cdfg is {ilp.get_ilp_solution()["max_II"]}')
+			log.info(f'the maximum II for this cdfg is {ilp.get_ilp_solution()["max_II"]}')
 
