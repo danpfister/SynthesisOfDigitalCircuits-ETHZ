@@ -41,11 +41,11 @@ def get_dag_edges(cdfg):
 	is_dag_edges = lambda e : e.attr['style'] != 'dashed'
 	return filter(is_dag_edges, get_cdfg_edges(cdfg))
 
-# function to retrieve all the bak edges that are not in the DAG
+# function to retrieve all the back edges that are not in the DAG
 # for deriving the II constraint
 # in addition, only the data-back edges are considered, therefore branches
 # are removed
-def get_bak_edges(cdfg):
+def get_back_edges(cdfg):
 	is_bak_edges = lambda e : e.attr['style'] == 'dashed'
 	return filter(is_bak_edges, get_cdfg_edges(cdfg))
 

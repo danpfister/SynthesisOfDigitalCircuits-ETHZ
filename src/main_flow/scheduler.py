@@ -215,7 +215,7 @@ class Scheduler:
 			self.ilp.add_variable(f'II_{bb}', lower_bound = 1, var_type='i')
 
 		# cross-iteration constraint: per each backedge
-		for e in get_bak_edges(self.cdfg): 
+		for e in get_back_edges(self.cdfg): 
 			log.debug(f'adding II constraint for backedge: {e[0]} -> {e[1]}')
 			n, v = self.cdfg.get_node(e[0]), self.cdfg.get_node(e[1])
 			assert n.attr['bbID'] == v.attr['bbID'], 'sanity check failed: II defined only for single BB for now'

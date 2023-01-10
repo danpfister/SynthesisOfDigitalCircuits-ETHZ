@@ -140,8 +140,9 @@ class Parser():
 			for instruction in basic_block.instructions:
 				self.parse_cdfg_instruction(str(instruction), self.cdfg, str(basic_block.name)) # each instruction is instantiated inside the cdfg
 
-
+		# get entry BB information
 		entry_bb_label, entry_bb_num = [ (bb_name, bb_num) for bb_name, bb_num in self.dic_bbID.items() if bb_num == 0 ][0]
+		# associate entry BB to each function argument
 		for arg in get_cdfg_nodes(self.cdfg):
 			if arg.attr['type'] == 'argument':
 				arg.attr['bbID'] = entry_bb_label
