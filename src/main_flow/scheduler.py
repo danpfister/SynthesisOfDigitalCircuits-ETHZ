@@ -4,8 +4,6 @@ from pprint import pprint
 import re
 import logging
 
-log = logging.getLogger('sdc.scheduler') # logger
-
 ############################################################################################################################################
 ############################################################################################################################################
 #
@@ -42,16 +40,20 @@ scheduling_techniques = ["no_pipeline", "pipelined"]
 class Scheduler:
 
 	# initialization of the scheduler with the parser
-	def __init__(self, parser, sched_technique):
+	def __init__(self, parser, sched_technique, log=None):
+		if log != None:
+			self.log = log
+		else:
+			self.log = logging.getLogger('scheduler') # if the logger is not given at object generation, create a new one
 		self.parser = parser
 		self.cdfg = parser.get_cdfg()
 		self.cfg = parser.get_cfg()
 		self.set_sched_technique(sched_technique)
 
 		# set solver options
-		self.ilp = ILP()
-		self.constraints = Constraint_Set(self.ilp)
-		self.opt_fun = Opt_Function(self.ilp)
+		self.ilp = ILP(log=log)
+		self.constraints = Constraint_Set(self.ilp, log=log)
+		self.opt_fun = Opt_Function(self.ilp, log=log)
 
 		# remove all branch nodes, they force the II to be the same as iteration latency
 		self.cdfg.remove_nodes_from([ n for n in get_cdfg_nodes(self.cdfg) if n.attr['type'] == 'br' ]) 
@@ -67,7 +69,7 @@ class Scheduler:
 	# function to set scheduling technique
 	def set_sched_technique(self, technique):
 		assert(technique in scheduling_techniques) # the scheduling technique chosen must belong to the allowed ones
-		log.info(f'setting the scheduling technique to be "{technique}"')
+		self.log.info(f'setting the scheduling technique to be "{technique}"')
 		self.sched_tech = technique
 
 	''' function for setting the data dependency constraint between two nodes '''
@@ -84,7 +86,7 @@ class Scheduler:
 		for e in get_cdfg_edges(self.cdfg): # Dependency constraint: per each edge
 			if e.attr['style'] != 'dashed':
 				n, v = self.cdfg.get_node(e[0]), self.cdfg.get_node(e[1])
-				log.debug(f'adding dependency constraint {n} -> {v}')
+				self.log.debug(f'adding dependency constraint {n} -> {v}')
 				# sv_v >= sv_n + latency; assume that the latency of each operation is 1 for now
 				self.constraints.add_constraint({f'sv{n}' : -1, f'sv{v}' : 1}, "geq", get_node_latency(n.attr) )
 
@@ -105,7 +107,7 @@ class Scheduler:
 			sv_(mul_0) + lat_(mul_0) <= sv_(mul_2)
 		"""
 		topological_order = get_topological_order(self.cdfg)
-		log.debug(f'topological ordering: {topological_order}')
+		self.log.debug(f'topological ordering: {topological_order}')
 		# assume the following resource constraints:
 		# load port <= 2; adders <= 1;
 		resource_constraint = { 'load' : 2, 'add' : 1 }
@@ -113,11 +115,11 @@ class Scheduler:
 		# resource constraints are done within each BB
 		for bb in get_cdfg_nodes(self.cfg):
 			for res, max_ in resource_constraint.items():
-				log.debug(f'adding resource constaint: {res} has maximum of {max_} inside BB {bb}')
+				self.log.debug(f'adding resource constaint: {res} has maximum of {max_} inside BB {bb}')
 				# get all the nodes that have resource type res inside the bb
 				res_topological_order = [ n for n in topological_order
 					if self.cdfg.get_node(n).attr['type'] == res and self.cdfg.get_node(n).attr['bbID'] == bb ]
-				log.debug(f'nodes of type {res} in BB {bb}: {res_topological_order}')
+				self.log.debug(f'nodes of type {res} in BB {bb}: {res_topological_order}')
 				# (2), (3): for each pair of nodes that have (RESOURCE - 1) nodes in between
 				for i in range(len(res_topological_order)):
 					n = res_topological_order[i]
@@ -129,7 +131,7 @@ class Scheduler:
 					n dominates v in topological order, and there are already RESOURCE number of operations before v
 					
 					'''
-					log.debug(f'resource constraint between {n} and {v}')
+					self.log.debug(f'resource constraint between {n} and {v}')
 					# (4): add constraint
 					self.constraints.add_constraint({f'sv{n}' : -1, f'sv{v}' : 1}, "geq", get_node_latency(n.attr) )
 	
@@ -152,7 +154,7 @@ class Scheduler:
 
 		# cross-iteration constraint: per each backedge
 		for e in get_back_edges(self.cdfg): 
-			log.debug(f'adding II constraint for backedge: {e[0]} -> {e[1]}')
+			self.log.debug(f'adding II constraint for backedge: {e[0]} -> {e[1]}')
 			n, v = self.cdfg.get_node(e[0]), self.cdfg.get_node(e[1])
 			assert n.attr['bbID'] == v.attr['bbID'], 'sanity check failed: II defined only for single BB for now'
 			# sv_n + latency_u <= sv_v + II * Dist; if there is an back edge assume that for now the dependencies from the back edges all have dist = 1
@@ -177,7 +179,7 @@ class Scheduler:
 			for bb in get_cdfg_nodes(self.cfg): # TODO: only minimize the II of the loop BB
 				self.constraints.add_constraint({f'II_{bb}' : -1, 'max_II' : 1}, 'geq', 0)
 		else:
-			log.error(f'Not implemented option! {self.sched_tech}')
+			self.log.error(f'Not implemented option! {self.sched_tech}')
 			raise NotImplementedError
 
 	''' find the optimal schedule for the given scheduling problem '''
@@ -192,10 +194,10 @@ class Scheduler:
 				attr = self.cdfg.get_node(node_name).attr
 				type_ = attr['type']
 				attr['label'] = attr['label'] + '\n' + f'[{value}]'
-			log.info(f'{var} of type {type_}:= {value}')
+			self.log.info(f'{var} of type {type_}:= {value}')
 		self.cdfg.draw("test_dag_result.pdf", prog="dot")
 		if 'max_latency' in self.ilp.get_ilp_solution():
-			log.info(f'the maximum latency for this cdfg is {self.ilp.get_ilp_solution()["max_latency"]}')
+			self.log.info(f'the maximum latency for this cdfg is {self.ilp.get_ilp_solution()["max_latency"]}')
 		elif 'max_II' in self.ilp.get_ilp_solution():
-			log.info(f'the maximum II for this cdfg is {self.ilp.get_ilp_solution()["max_II"]}')
+			self.log.info(f'the maximum II for this cdfg is {self.ilp.get_ilp_solution()["max_II"]}')
 

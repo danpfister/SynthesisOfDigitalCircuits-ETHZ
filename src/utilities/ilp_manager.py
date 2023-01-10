@@ -1,5 +1,5 @@
 import pulp as ilp
-
+import logging
 # function to check if `n` is a number or not
 def is_number(n):
 	if n == None:
@@ -34,7 +34,11 @@ def is_number(n):
 
 class Opt_Function:
 
-	def __init__(self, ilp_obj, coeff_dict = None):
+	def __init__(self, ilp_obj, coeff_dict = None, log=None):
+		if log != None:
+			self.log = log
+		else:
+			self.log = logging.getLogger('opt_function') # if the logger is not given at object generation, create a new one
 		assert(ilp_obj != None) # ilp_obj represents the ILP object to which the optimization function belongs to
 		self.valid = True
 		self.function_coeff = {}
@@ -45,7 +49,7 @@ class Opt_Function:
 		var_list = ilp_obj.get_variables_list() # if the coefficient dictionary is different from None, it is used to generate the first 
 		for var in coeff_dict:
 			if not(var in var_list):
-				print("[ERROR] {0} is not a variable in the ILP object".format(var))
+				self.log.error("{0} is not a variable in the ILP object".format(var))
 				self.valid = False
 				return
 		self.function_coeff = coeff_dict	
@@ -57,13 +61,13 @@ class Opt_Function:
 	# function to add a new variable and its corresponding coefficient in the optimization function
 	def add_variable(self, var_name, coeff=1):
 		if not(self.valid):
-			print("[ERROR] Opt_Function object is not valid!")
+			self.log.error("Opt_Function object is not valid!")
 			return
 		if not(var_name in self.ilp_obj.get_variables_list()):
-			print("[ERROR] Variable not present in the ILP object")
+			self.log.error("Variable not present in the ILP object")
 			return
 		if not(is_number(coeff)):
-			print("[ERROR] Coefficient {0} is not numeric!".format(coeff))
+			self.log.error("Coefficient {0} is not numeric!".format(coeff))
 			return
 		if var_name in self.function_coeff:
 			print("[WARNING] The variable {0} is already present in the optimization function.".format(var_name))
@@ -107,7 +111,11 @@ disequality_signs = {"eq":0, "geq":1, "leq":-1}
 
 class Constraint_Set:
 
-	def __init__(self, ilp_obj):
+	def __init__(self, ilp_obj, log=None):
+		if log != None:
+			self.log = log
+		else:
+			self.log = logging.getLogger('constraint') # if the logger is not given at object generation, create a new one
 		assert(ilp_obj != None) # ilp_obj represents the ILP object to which the optimization function belongs to
 		self.constraints = {}
 		self.ilp_obj = ilp_obj
@@ -119,20 +127,20 @@ class Constraint_Set:
 		constraint = {}
 		for var_name in coeff_list:
 			if not(type(var_name) is str):
-				print("[ERROR] Variable {0} should be a string (the name of the variable)".format(var_name))
+				self.log.error("Variable {0} should be a string (the name of the variable)".format(var_name))
 				return None
 			if not(var_name in self.ilp_obj.get_variables_list()):
-				print("[ERROR] Variable {0} not present in the ILP object".format(var_name))
+				self.log.error("Variable {0} not present in the ILP object".format(var_name))
 				return None
 			if not(dis_sign in disequality_signs):
-				print("[ERROR] Disequality sign {0} is not allowerd. Allowed signs = {1}".format(dis_sign, disequality_signs.keys()))
+				self.log.error("Disequality sign {0} is not allowerd. Allowed signs = {1}".format(dis_sign, disequality_signs.keys()))
 				return None
 			coefficient = coeff_list[var_name]
 			if not(is_number(coefficient)):
-				print("[ERROR] Coefficient {0} of variable {1} is not numeric".format(coeff_list[var_name], var_name))
+				self.log.error("Coefficient {0} of variable {1} is not numeric".format(coeff_list[var_name], var_name))
 				return None
 			if not(is_number(right_constant)):
-				print("[ERROR] Right Coefficient of the constraint {0} is not numeric".format(right_constant))
+				self.log.error("Right Coefficient of the constraint {0} is not numeric".format(right_constant))
 				return None
 			# the constraint is a dictionary with variables as keys and coefficients as values
 			constraint[self.ilp_obj.get_variable(var_name)] = coefficient
@@ -187,7 +195,11 @@ class Constraint_Set:
 
 class ILP:
 
-	def __init__(self, solver="PULP_CBC_CMD", minimize=True):
+	def __init__(self, solver="PULP_CBC_CMD", minimize=True, log=None):
+		if log != None:
+			self.log = log
+		else:
+			self.log = logging.getLogger('parser') # if the logger is not given at object generation, create a new one
 		self.set_solver(solver)
 		self.model_name = "ILP_model"
 		self.model_minimize = minimize
@@ -217,7 +229,7 @@ class ILP:
 		assert(is_number(lower_bound) or lower_bound == None) # assert that lower bound is numeric or None
 		var_type_dic = {'i':"Integer", 'b': "Binary", 'c':"Continuous"} # dictionary to associate char to var_type
 		if not(var_type in var_type_dic):
-			print("[ERROR] ILP variable has only 3 var_type: i(nteger), b(inary) and c(continuous)")
+			self.log.error("ILP variable has only 3 var_type: i(nteger), b(inary) and c(continuous)")
 			return
 		var = ilp.LpVariable(var_name, lower_bound, upper_bound, var_type_dic[var_type])
 		self.variables[var_name] = var
@@ -239,14 +251,14 @@ class ILP:
 	# function to set optimization function
 	def set_optimization_function(self, opt_function):
 		if not(type(opt_function) is Opt_Function): # check that the optimization function is an object of the class Opt_Function
-			print("[ERROR] Optimization Function needs to be object of the class Opt_Function")
+			self.log.error("Optimization Function needs to be object of the class Opt_Function")
 			return 
 		self.opt_function = opt_function
 
 	# function to set constraints' set
 	def set_constraints(self, constraints):
 		if not(type(constraints) is Constraint_Set): # check that the constraints is an object of the class Constraint_Set
-			print("[ERROR] Constraints need to be object of the class Constraint_Set")
+			self.log.error("Constraints need to be object of the class Constraint_Set")
 			return 
 		self.constraints = constraints
 
@@ -278,7 +290,7 @@ class ILP:
 			model = ilp.LpProblem(self.model_name, ilp.LpMaximize)
 		model = self.update_model(model, self.constraints, self.opt_function)
 		model.writeLP(output_file)
-		print("[Info] The ILP formulation is written in "+output_file)
+		self.log.info("The ILP formulation is written in "+output_file)
 
 	# function to get ILP solution
 	def get_ilp_solution(self):

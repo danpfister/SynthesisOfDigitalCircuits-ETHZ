@@ -37,13 +37,13 @@ def main(args):
 		path_ssa_example = "{0}/{1}/reports/{1}.cpp_mem2reg_constprop_simplifycfg_die.ll".format(base_path, example_name)
 
 		log.info("Parsing file {0}".format(path_ssa_example))
-		ssa_parser = Parser(path_ssa_example, example_name)
+		ssa_parser = Parser(path_ssa_example, example_name, log)
 		if not(ssa_parser.is_valid()):
 			log.error("Parser has encountered a problem. Please verify path correctness ({0})".format(path_ssa_example))
 			continue
 		ssa_parser.draw_cdfg("{0}/{1}/test.pdf".format(base_path, example_name))
 
-		scheduler = Scheduler(ssa_parser, "pipelined")
+		scheduler = Scheduler(ssa_parser, "pipelined", log)
 		scheduler.set_data_dependency_constraints()
 		scheduler.set_resource_constraints()
 		scheduler.set_II_constraints()

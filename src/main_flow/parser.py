@@ -4,17 +4,13 @@ import logging
 from llvmlite.binding import parse_assembly, get_function_cfg
 
 if __name__ == '__main__':
-	print("[ERROR] Use option --frontend with the run_SDC.py script to run only the parser")
+	print("ERROR - Use option --frontend with the run_SDC.py script to run only the parser")
 	exit()
 
 # this imports are relative to SDC main path, so they shouldn't be run if the script run on its own
 from src.utilities.regex import *
 from src.utilities.cdfg_manager import *
 
-log=logging.getLogger('sdc.parser')
-
-
-DEBUG = False # flag to print DEBUG information
 
 ############################################################################################################################################
 ############################################################################################################################################
@@ -57,7 +53,11 @@ DEBUG = False # flag to print DEBUG information
 class Parser():
 
 	# it takes as input the ssa_path where the SSA IR is located and the name of the input function 
-	def __init__(self, ssa_path, example_name):
+	def __init__(self, ssa_path, example_name, log=None):
+		if log != None:
+			self.log = log
+		else:
+			self.log = logging.getLogger('parser') # if the logger is not given at object generation, create a new one
 		self.ssa_path = ssa_path
 		self.example_name = example_name
 
@@ -71,13 +71,13 @@ class Parser():
 	def is_valid(self):
 		valid = True
 		if self.ssa_path == None or not(".ll" in self.ssa_path):
-			print("[ERROR] SSA path is wrong ({0}). Please check the correct path and the correct format (.ll)".format(self.ssa_path))
+			self.log.error("SSA path is wrong ({0}). Please check the correct path and the correct format (.ll)".format(self.ssa_path))
 			valid = False
 		if self.assembly == None:
-			print("[ERROR] Assembly is invalid. You need to call read_ssa_file function at least once")
+			self.log.error("Assembly is invalid. You need to call read_ssa_file function at least once")
 			valid = False
 		if self.top_function == None:
-			print("[ERROR] Top_function is invalid. You need to call set_top_function function at least once")
+			self.log.error("Top_function is invalid. You need to call set_top_function function at least once")
 			valid = False
 		return valid
 
@@ -217,7 +217,7 @@ class Parser():
 								if match_input != None:
 									operands.append(match_input.group(2))
 				else:
-					print("[ERROR] Identifying instruction '{0}'".format(instruction))
+					self.log.error("Identifying instruction '{0}'".format(instruction))
 
 				# update the dictionary containing the list of nodes per type
 				self.dic_nodes = update_dic_list(self.dic_nodes ,instruction_key, result.replace('%', '_'))
@@ -228,8 +228,7 @@ class Parser():
 		variables = [ op.replace('%', '_') for op in operands if '%' in op ] # variables are operands with initial '%' symbol
 		if result != '':
 			cdfg.add_node(f'{result}', label = label.replace('%', '_'), id = self.dic_bbID[bbID], bbID = bbID, instruction = instruction.strip(), type=instruction_key) # add node related to the instruction
-			if DEBUG:
-				print("[DEBUG] Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
+			self.log.debug("Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
 			for input_ in variables: # add a node for each input variable if not present and the edge connecting it to result
 				if input_ in self.function_inputs: 
 					# if the variable is a function input, the bbid is assigned depending on last operation calling it, and we call the type of this variable "argument"
@@ -238,13 +237,11 @@ class Parser():
 				else:
 					cdfg.add_node(f'{input_}')
 				cdfg.add_edge(f'{input_}', f'{result}')
-				if DEBUG:
-					print("[DEBUG] Added variable node {0} and edge {0} -> {1}".format(input_, result))
+				self.log.debug("Added variable node {0} and edge {0} -> {1}".format(input_, result))
 			for cst_id_, input_ in enumerate(constants): # add a node for each input constant and the edge connecting it to result, each constant should have an unique identifier to distinguish
 				cdfg.add_node(f'cst_{result}_{cst_id_}', id = self.dic_bbID[bbID], bbID = bbID,  type='constant', label=f'{input_}', value=f'{cst_id_}')
 				cdfg.add_edge(f'cst_{result}_{cst_id_}', f'{result}')
-				if DEBUG:
-					print("[DEBUG] Added constant node {0} and edge {0} -> {1}".format(input_, result))
+				self.log.debug("Added constant node {0} and edge {0} -> {1}".format(input_, result))
 
 	# function to connect branch(es) with phi(s)
 	def create_bb_control_signals(self):
@@ -326,11 +323,11 @@ class Parser():
 		assert(not(self.cdfg is None))
 		self.cdfg.draw(output_file, prog=layout) # drawing cdfg in the .pdf file
 		self.cdfg.write(output_file.replace('.pdf', '.dot')) # describing cdfg in dot file
-		print("[Info] Printed cdfg in file {0} with layout {1}. Its dot representation is in file {2}".format(output_file, layout, output_file.replace('.pdf','.dot')))
+		self.log.info("Printed cdfg in file {0} with layout {1}. Its dot representation is in file {2}".format(output_file, layout, output_file.replace('.pdf','.dot')))
 		cfg_filename = output_file.replace('.pdf', '.cfg.pdf') 
 		self.cfg.draw(cfg_filename, prog=layout) # drawing cfg in the .pdf file
 		self.cfg.write(cfg_filename.replace('.pdf', '.dot')) # describing cfg in dot file
-		print("[Info] Printed cfg in file {0} with layout {1}. Its dot representation is in file {2}".format(cfg_filename, layout, cfg_filename.replace('.pdf','.dot')))
+		self.log.info("Printed cfg in file {0} with layout {1}. Its dot representation is in file {2}".format(cfg_filename, layout, cfg_filename.replace('.pdf','.dot')))
 
 	#function to get cdfg
 	def get_cdfg(self):
