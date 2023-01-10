@@ -1,6 +1,6 @@
 from src.utilities.ilp_manager import *
 from src.utilities.cdfg_manager import *
-from pprint import pprint
+import matplotlib.pyplot as plt
 import re
 import logging
 
@@ -24,6 +24,7 @@ import logging
 #					- ilp: ilp object
 #					- constraints: constraints object
 #					- opt_fun: optmization function object
+#					- II : Initiation Interval achieved by scheduling solution
 #					- log: logger object used to output logs
 ############################################################################################################################################
 #	FUNCTIONS:
@@ -54,6 +55,7 @@ class Scheduler:
 		self.cfg = parser.get_cfg()
 		self.set_sched_technique(sched_technique)
 		self.sched_sol = None
+		self.II = None
 
 		# set solver options
 		self.ilp = ILP(log=log)
@@ -139,7 +141,6 @@ class Scheduler:
 		elif self.sched_tech == 'asap':
 			# ======================== Latency Minimization per node Objective ==========================#
 			# objective: minimize the end-to-end latency
-			self.add_max_latency_constraint()
 
 			for n in get_cdfg_nodes(self.cdfg): # we try to minimize all nodes delays
 				self.opt_fun.add_variable(f'sv{n}', 1)
@@ -147,6 +148,10 @@ class Scheduler:
 			# ======================== Latency Maximization per node Objective ==========================#
 			# objective: minimize the end-to-end latency
 			self.add_max_latency_constraint()
+
+			self.constraints.add_constraint({f'svssink_0' : 1}, "leq", 1)
+			self.constraints.add_constraint({f'svssink_1' : 1}, "leq", 10)
+			self.constraints.add_constraint({f'svssink_2' : 1}, "leq", 11)
 
 			for n in get_cdfg_nodes(self.cdfg): # we try to minimize all nodes delays
 				self.opt_fun.add_variable(f'sv{n}', -1)
@@ -173,20 +178,24 @@ class Scheduler:
 		self.ilp.print_ilp("{0}/{1}/output.lp".format(base_path, example_name))
 		res = self.ilp.solve_ilp()
 		assert res == 1, "The ILP problem is unfeasible"
-		self.sched_sol = self.ilp.get_ilp_solution()
+		self.sched_sol = self.ilp.get_ilp_solution() # save solution in an attribute
+		# iterate through the different variables to obtain results
 		for var, value in self.ilp.get_ilp_solution().items():
 			node_type = 'AUX'
+			# check if the node represents a timing
 			if re.search(r'^sv', var):
 				node_name = re.sub(r'^sv', '', var)
 				attributes = self.cdfg.get_node(node_name).attr
 				node_type = attributes['type']
 				attributes['label'] = attributes['label'] + '\n' + f'[{value}]'
+				attributes['latency'] = value
 			self.log.debug(f'{var} of type {node_type}:= {value}')
 		self.cdfg.draw("test_dag_result.pdf", prog="dot")
 		if 'max_latency' in self.ilp.get_ilp_solution():
 			self.log.info(f'The maximum latency for this cdfg is {self.ilp.get_ilp_solution()["max_latency"]}')
 		elif 'max_II' in self.ilp.get_ilp_solution():
 			self.log.info(f'The maximum II for this cdfg is {self.ilp.get_ilp_solution()["max_II"]}')
+			self.II = self.ilp.get_ilp_solution()["max_II"]
 
 	# function to get ilp, constraints and optimization function
 	def get_ilp_tuple(self):
@@ -195,4 +204,23 @@ class Scheduler:
 	# function to get the gantt chart of a scheduling 
 	def print_gantt_chart(self):
 		assert self.sched_sol != None, "There should be a solution to an ILP before running this function"
-		print(self.sched_sol)
+		variables = []
+		start_time = []
+		duration = []
+		latest_tick = 0 # variable to find last tick for xlables
+		for node_name in get_cdfg_nodes(self.cdfg):
+			if 'label' in self.cdfg.get_node(node_name).attr:
+				variables.append(node_name)
+				attributes = self.cdfg.get_node(node_name).attr
+				start_time.append(float(attributes['latency'])) # start time of each operation
+				duration.append(float(get_node_latency(attributes))) # duration of each operation
+				tmp_tick = float(attributes['latency']) + float(get_node_latency(attributes))
+				if tmp_tick > latest_tick:
+					latest_tick = tmp_tick
+		plt.barh(y=variables, left=start_time, width=duration)
+		plt.grid()
+		plt.xticks([i for i in range(int(latest_tick)+1)])
+		if self.II != None: # adding II information on the plot
+			plt.hlines(y=-1, xmin=0, xmax=self.II, color='r', linestyle = '-')
+			plt.text(self.II/2-0.35, -2, "II = {0}".format(int(self.II)), color='r')
+		plt.show()

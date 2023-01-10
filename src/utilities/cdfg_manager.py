@@ -22,7 +22,7 @@ def get_node_latency(attr):
 		return 4
 	elif attr['type'] == 'load':
 		return 1
-	elif attr['type'] in ('br', 'supersink', 'supersource', 'phi', 'constant'):
+	elif attr['type'] in ('br', 'supersink', 'supersource', 'constant'):
 		return 0
 	else:
 		return 1

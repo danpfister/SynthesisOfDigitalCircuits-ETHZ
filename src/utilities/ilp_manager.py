@@ -283,7 +283,7 @@ class ILP:
 		solver = ilp.getSolver(self.get_solver(), msg=0) # msg=0 enforces no output of the ILP solver
 		self.status = self.model.solve(solver)
 		if(self.status != 1):
-			self.log.warning("ILP problem is unfeasible")
+			self.log.warning("ILP problem is unfeasible (Status {0})\t['-1': infeasible, '-2': unbounded, '-3': undefined]".format(self.status))
 		return self.status
 
 	# function to print the ILP formulation
