@@ -47,6 +47,7 @@ DEBUG = False # flag to print DEBUG information
 #					- create_cdfg : create CDFG output
 #					- parse_cdfg_instruction : parse instruction from SSA IR to create CDFG nodes and edges
 #					- create_bb_control_signals : create a control wire between BBs (connecting branch(es) and phi(s) )
+#					- add_artificial_nodes : add artificial nodes (supersource and supersink) to form a hierarchical sequencing graph
 #					- draw_cdfg : represent CDFG in an output file
 #					- get_cdfg : get CDFG output
 #					- get_cfg : get CFG output
@@ -64,6 +65,7 @@ class Parser():
 		self.set_top_function(example_name) #it assumes that the filename corresponds to top function
 		self.create_cfg() # it generates the control flow graph
 		self.create_cdfg() # it generates the control data flow graph
+		self.add_artificial_nodes() # adding supersource and supersinks to the cdfg
 	
 	#function to check validity of the parser
 	def is_valid(self):
@@ -259,6 +261,65 @@ class Parser():
 		for e in get_cdfg_edges(self.cdfg):
 			if self.is_backedge(e[0], e[1]):
 				e.attr['style'] = 'dashed'
+
+	# add supersource and supersink nodes to each BB
+	def add_artificial_nodes(self):
+		# leaf nodes: all the exiting nodes of BBs
+		leaf_nodes = [] 
+		for n in get_cdfg_nodes(self.cdfg):
+			# get all edges that are not back edges
+			out_edges = [ e for e in get_dag_edges(self.cdfg) if str(e[0]) == str(n)]
+
+			# if n has no predecessors, then for sure we connect it to supersource
+			if out_edges == []:
+				leaf_nodes.append(n)
+			# if n has predecessors from a different BB, then we connect it to a supersource
+			else:
+				for e in out_edges:
+					id_pred = self.cdfg.get_node(e[0]).attr['id']
+					id_succ = self.cdfg.get_node(e[1]).attr['id']
+					if id_pred != id_succ:
+						leaf_nodes.append(n)
+						break
+		
+		# root_nodes: all the entering nodes of BBs
+		root_nodes = [] # root nodes: all the dfg nodes that have no predecessors in the same BB
+		for n in get_cdfg_nodes(self.cdfg):
+			in_edges = [ e for e in get_dag_edges(self.cdfg) if str(e[1]) == str(n)]
+
+			# if n has no successors, then for sure we connect it to a supersink
+			if in_edges == []:
+				root_nodes.append(n)
+			# if n has successors from a different BB, then we connect it to a supersink
+			else:
+				for e in in_edges:
+					id_pred = self.cdfg.get_node(e[0]).attr['id']
+					id_succ = self.cdfg.get_node(e[1]).attr['id']
+					if id_pred != id_succ:
+						leaf_nodes.append(n)
+						break
+
+		# connect the root nodes and the leaf nodes to supernodes
+		for bb in get_cdfg_nodes(self.cfg):
+			id_ = bb.attr['id']
+			self.cdfg.add_node(f'ssrc_{id_}',id=id_,type='supersource',style='dashed',label=f'ssrc BB{id_}')
+			# connect the super source node to the entering nodes of each BB, that is not a constant (which we have already removed)
+			for n in root_nodes: 
+				if n.attr['id'] == id_:
+					self.cdfg.add_edge(f'ssrc_{id_}', n)
+			self.cdfg.add_node(f'ssink_{id_}', id=id_, type = 'supersink', style = 'dashed', label = f'ssink BB{id_}')
+			# connect the super sink node to the exiting nodes of each BB 
+			for n in leaf_nodes: 
+				if n.attr['id'] == id_:
+					self.cdfg.add_edge(n, f'ssink_{id_}')
+			if self.cdfg.out_edges(f'ssrc_{id_}') == []: # if a bb is empty, add an edge from the supersource to the supersink
+				self.cdfg.add_edge(f'ssrc_{id_}', f'ssink_{id_}')
+
+		# establish connections between supersource and supersink according to control-flow graph
+		for n, v in map(lambda e : (self.cfg.get_node(e[0]), self.cfg.get_node(e[1])), get_cdfg_edges(self.cfg)):
+			if int(n.attr['id']) < int(v.attr['id']): # TODO: handle the backedges as well
+				self.cdfg.add_edge(f'ssink_{n.attr["id"]}', f'ssrc_{v.attr["id"]}') # add sequential dependency between BBs
+		self.cdfg.draw("test_supernodes.pdf", prog="dot")
 
 	#function to draw cdfg function representation of the ssa input file
 	def draw_cdfg(self, output_file = 'test.pdf', layout = 'dot'):

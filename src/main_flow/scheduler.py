@@ -28,7 +28,6 @@ log = logging.getLogger('sdc.scheduler') # logger
 ############################################################################################################################################
 #	FUNCTIONS:
 #					- set_sched_technique : set scheduling technique
-#					- add_artificial_nodes : add artificial nodes (supersource and supersink) to form a hierarchical sequencing graph
 #					- set_data_dependency_constraints: add data dependency constraints to the constraints
 #					- set_resource_constraints: add resource dependency constraints to the constraints
 #					- set_II_constraints: add II constraints to the constraints
@@ -60,9 +59,6 @@ class Scheduler:
 		# remove all constant nodes
 		self.cdfg.remove_nodes_from([ n for n in get_cdfg_nodes(self.cdfg) if n.attr['type'] == 'constant' ]) 
 
-		# adding supersource and supersinks to the cdfg
-		self.add_artificial_nodes()
-
 		# add one ilp variable per each node
 		for n in get_cdfg_nodes(self.cdfg): # create a scheduling variable (sv) per each CDFG node
 			self.ilp.add_variable(f'sv{n}', lower_bound = 0,  var_type="i")
@@ -73,66 +69,6 @@ class Scheduler:
 		assert(technique in scheduling_techniques) # the scheduling technique chosen must belong to the allowed ones
 		log.info(f'setting the scheduling technique to be "{technique}"')
 		self.sched_tech = technique
-
-	# add supersource and supersink nodes to each BB
-	# TODO: maybe we move this function to the parser
-	def add_artificial_nodes(self):
-		# leaf nodes: all the exiting nodes of BBs
-		leaf_nodes = [] 
-		for n in get_cdfg_nodes(self.cdfg):
-			# get all edges that are not back edges
-			out_edges = [ e for e in get_dag_edges(self.cdfg) if str(e[0]) == str(n)]
-
-			# if n has no predecessors, then for sure we connect it to supersource
-			if out_edges == []:
-				leaf_nodes.append(n)
-			# if n has predecessors from a different BB, then we connect it to a supersource
-			else:
-				for e in out_edges:
-					id_pred = self.cdfg.get_node(e[0]).attr['id']
-					id_succ = self.cdfg.get_node(e[1]).attr['id']
-					if id_pred != id_succ:
-						leaf_nodes.append(n)
-						break
-		
-		# root_nodes: all the entering nodes of BBs
-		root_nodes = [] # root nodes: all the dfg nodes that have no predecessors in the same BB
-		for n in get_cdfg_nodes(self.cdfg):
-			in_edges = [ e for e in get_dag_edges(self.cdfg) if str(e[1]) == str(n)]
-
-			# if n has no successors, then for sure we connect it to a supersink
-			if in_edges == []:
-				root_nodes.append(n)
-			# if n has successors from a different BB, then we connect it to a supersink
-			else:
-				for e in in_edges:
-					id_pred = self.cdfg.get_node(e[0]).attr['id']
-					id_succ = self.cdfg.get_node(e[1]).attr['id']
-					if id_pred != id_succ:
-						leaf_nodes.append(n)
-						break
-
-		# connect the root nodes and the leaf nodes to supernodes
-		for bb in get_cdfg_nodes(self.cfg):
-			id_ = bb.attr['id']
-			self.cdfg.add_node(f'ssrc_{id_}',id=id_,type='supersource',style='dashed',label=f'ssrc BB{id_}')
-			# connect the super source node to the entering nodes of each BB, that is not a constant (which we have already removed)
-			for n in root_nodes: 
-				if n.attr['id'] == id_:
-					self.cdfg.add_edge(f'ssrc_{id_}', n)
-			self.cdfg.add_node(f'ssink_{id_}', id=id_, type = 'supersink', style = 'dashed', label = f'ssink BB{id_}')
-			# connect the super sink node to the exiting nodes of each BB 
-			for n in leaf_nodes: 
-				if n.attr['id'] == id_:
-					self.cdfg.add_edge(n, f'ssink_{id_}')
-			if self.cdfg.out_edges(f'ssrc_{id_}') == []: # if a bb is empty, add an edge from the supersource to the supersink
-				self.cdfg.add_edge(f'ssrc_{id_}', f'ssink_{id_}')
-
-		# establish connections between supersource and supersink according to control-flow graph
-		for n, v in map(lambda e : (self.cfg.get_node(e[0]), self.cfg.get_node(e[1])), get_cdfg_edges(self.cfg)):
-			if int(n.attr['id']) < int(v.attr['id']): # TODO: handle the backedges as well
-				self.cdfg.add_edge(f'ssink_{n.attr["id"]}', f'ssrc_{v.attr["id"]}') # add sequential dependency between BBs
-		self.cdfg.draw("test_supernodes.pdf", prog="dot")
 
 	''' function for setting the data dependency constraint between two nodes '''
 	def set_data_dependency_constraints(self):
