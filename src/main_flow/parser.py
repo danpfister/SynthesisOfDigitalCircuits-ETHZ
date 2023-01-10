@@ -279,6 +279,7 @@ class Parser():
 					if id_pred != id_succ:
 						leaf_nodes.append(n)
 						break
+		self.log.debug(f'list of leaf nodes: {leaf_nodes}')
 		
 		# root_nodes: all the entering nodes of BBs
 		root_nodes = [] # root nodes: all the dfg nodes that have no predecessors in the same BB
@@ -294,8 +295,9 @@ class Parser():
 					id_pred = self.cdfg.get_node(e[0]).attr['id']
 					id_succ = self.cdfg.get_node(e[1]).attr['id']
 					if id_pred != id_succ:
-						leaf_nodes.append(n)
+						root_nodes.append(n)
 						break
+		self.log.debug(f'list of root nodes: {root_nodes}')
 
 		# connect the root nodes and the leaf nodes to supernodes
 		for bb in get_cdfg_nodes(self.cfg):
