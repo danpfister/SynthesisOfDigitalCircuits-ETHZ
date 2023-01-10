@@ -33,6 +33,7 @@ from src.utilities.cdfg_manager import *
 #					- dic_bbID : dictionary of bb_IDNumber per bbID
 #					- cdfg : output CDFG of the parser
 #					- dic_nodes : dictionary of nodes per type
+#					- log: logger object used to output logs
 ############################################################################################################################################
 #	FUNCTIONS:
 #					- is_valid : check validity of the parser object
@@ -100,7 +101,7 @@ class Parser():
 					if "define" in line and top_function_name in line:
 						input_regex = r'\(((, )?(\S+)\*? %(\S+))*\)'
 						match_input = re.search(input_regex, line)
-						if not match_input: log.error(f'line that failed to match: {line}')
+						if not match_input: self.log.error(f'line that failed to match: {line}')
 						matched_string = match_input.group()
 						splitted_matched_string = matched_string.split()
 						self.function_inputs = []

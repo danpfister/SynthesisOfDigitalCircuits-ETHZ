@@ -23,6 +23,7 @@ def is_number(n):
 #				- valid : validity of the optimizaiton function
 #				- function_coeff : output optimization function with coefficients
 #				- ilp_obj : ILP object linked to optimization function
+#				- log: logger object used to output logs
 ############################################################################################################################################
 #	FUNCTIONS:
 #				- is_valid : returns the validity of the optimization function
@@ -99,6 +100,7 @@ class Opt_Function:
 #	ATTRIBUTES:
 #				- ilp_obj : ILP object linked to optimization function
 #				- constraints : set of constraints
+#				- log: logger object used to output logs
 ############################################################################################################################################
 #	FUNCTIONS:
 #				- add_constraint : add contraint to constraints' set
@@ -176,6 +178,7 @@ class Constraint_Set:
 #				- opt_function : optimization function
 #				- constraints : constraints set
 #				- status : status of the ILP solution
+#				- log: logger object used to output logs
 ############################################################################################################################################
 #	FUNCTIONS:
 #				- set_solver : set the ILP solver

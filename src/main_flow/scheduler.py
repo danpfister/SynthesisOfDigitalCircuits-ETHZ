@@ -23,6 +23,7 @@ import logging
 #					- ilp: ilp object
 #					- constraints: constraints object
 #					- opt_fun: optmization function object
+#					- log: logger object used to output logs
 ############################################################################################################################################
 #	FUNCTIONS:
 #					- set_sched_technique : set scheduling technique
