@@ -20,6 +20,7 @@ import logging
 #					- cdfg : CDFG representation of the SSA IR input
 #					- cfg : CFG representation of the SSA IR input
 #					- sched_tech : scheduling technique selected
+#					- sched_sol : scheduling solution
 #					- ilp: ilp object
 #					- constraints: constraints object
 #					- opt_fun: optmization function object
@@ -33,6 +34,7 @@ import logging
 #					- create_scheduling_ilp : create the ILP of the scheduling
 #					- solve_scheduling_ilp: run the solver on top of the constrants from set_*_constraints and the objective function from set_opt_function
 #					- get_ilp_tuple : get ilp, constraints and optimization function
+#					- print_gantt_chart : prints the gantt chart of a scheduling solution
 ############################################################################################################################################
 ############################################################################################################################################
 
@@ -51,6 +53,7 @@ class Scheduler:
 		self.cdfg = parser.get_cdfg()
 		self.cfg = parser.get_cfg()
 		self.set_sched_technique(sched_technique)
+		self.sched_sol = None
 
 		# set solver options
 		self.ilp = ILP(log=log)
@@ -111,24 +114,42 @@ class Scheduler:
 
 		# cross-iteration constraint: per each backedge
 		for e in get_back_edges(self.cdfg): 
-			self.log.debug(f'adding II constraint for backedge: {e[0]} -> {e[1]}')
-			n, v = self.cdfg.get_node(e[0]), self.cdfg.get_node(e[1])
-			assert n.attr['bbID'] == v.attr['bbID'], 'sanity check failed: II defined only for single BB for now'
-			# sv_n + latency_u <= sv_v + II * Dist; if there is an back edge assume that for now the dependencies from the back edges all have dist = 1
+			self.log.debug(f'Adding II constraint for backedge: {e[0]} -> {e[1]}')
+			src, dst = self.cdfg.get_node(e[0]), self.cdfg.get_node(e[1])
+			assert src.attr['bbID'] == dst.attr['bbID'], 'sanity check failed: II defined only for single BB for now'
+			# sv_src + latency_u <= sv_dst + II * Dist; if there is an back edge assume that for now the dependencies from the back edges all have dist = 1
 			# TODO: determine the dependency distance?
-			self.constraints.add_constraint({ f'sv{n}' : -1, f'sv{v}' : 1, f'II_{n.attr["bbID"]}' : 1 }, "geq", get_node_latency(n.attr)) 
+			self.constraints.add_constraint({ f'sv{src}' : -1, f'sv{dst}' : 1, f'II_{src.attr["bbID"]}' : 1 }, "geq", get_node_latency(src.attr)) 
+
+	# function to add max_latency constraint and optimization
+	def add_max_latency_constraint(self):
+		self.ilp.add_variable(f'max_latency', lower_bound = 0,  var_type="i")
+		self.opt_fun.add_variable(f'max_latency', 1)
+
+		ssinks = filter(lambda n : n.attr['type'] == 'supersink', get_cdfg_nodes(self.cdfg))
+		for n in ssinks: # we try to minimize the latest SSINK
+			self.constraints.add_constraint({f'sv{n}' : -1, f'max_latency' : 1}, "geq", 0)
 
 	# function for setting the optimiztion funciton, according to the optimization option
 	def set_opt_function(self):
 		if self.sched_tech == 'no_pipeline':
 			# ======================== Latency Minimization Objective ==========================#
 			# objective: minimize the end-to-end latency
-			self.ilp.add_variable(f'max_latency', lower_bound = 0,  var_type="i")
-			self.opt_fun.add_variable(f'max_latency', 1)
+			self.add_max_latency_constraint()
+		elif self.sched_tech == 'asap':
+			# ======================== Latency Minimization per node Objective ==========================#
+			# objective: minimize the end-to-end latency
+			self.add_max_latency_constraint()
 
-			ssinks = filter(lambda n : n.attr['type'] == 'supersink', get_cdfg_nodes(self.cdfg))
-			for n in ssinks: # we try to minimize the latest SSINK
-				self.constraints.add_constraint({f'sv{n}' : -1, f'max_latency' : 1}, "geq", 0)
+			for n in get_cdfg_nodes(self.cdfg): # we try to minimize all nodes delays
+				self.opt_fun.add_variable(f'sv{n}', 1)
+		elif self.sched_tech == 'alap':
+			# ======================== Latency Maximization per node Objective ==========================#
+			# objective: minimize the end-to-end latency
+			self.add_max_latency_constraint()
+
+			for n in get_cdfg_nodes(self.cdfg): # we try to minimize all nodes delays
+				self.opt_fun.add_variable(f'sv{n}', -1)
 		elif self.sched_tech == 'pipelined':
 			# ======================== II Minimization Objective ===============================#
 			self.ilp.add_variable(f'max_II', lower_bound = 0,  var_type="i")
@@ -141,10 +162,8 @@ class Scheduler:
 
 	# function to create the ILP of the scheduling
 	def create_scheduling_ilp(self):
-		if self.sched_tech == "no_pipeline":
-			self.set_data_dependency_constraints()
-		elif self.sched_tech == "pipeline":
-			self.set_data_dependency_constraints()
+		self.set_data_dependency_constraints()
+		if self.sched_tech == "pipelined":
 			self.set_II_constraints()
 		self.set_opt_function()
 
@@ -153,6 +172,8 @@ class Scheduler:
 		# log the result
 		self.ilp.print_ilp("{0}/{1}/output.lp".format(base_path, example_name))
 		res = self.ilp.solve_ilp()
+		assert res == 1, "The ILP problem is unfeasible"
+		self.sched_sol = self.ilp.get_ilp_solution()
 		for var, value in self.ilp.get_ilp_solution().items():
 			node_type = 'AUX'
 			if re.search(r'^sv', var):
@@ -171,3 +192,7 @@ class Scheduler:
 	def get_ilp_tuple(self):
 		return self.ilp, self.constraints, self.opt_fun
 
+	# function to get the gantt chart of a scheduling 
+	def print_gantt_chart(self):
+		assert self.sched_sol != None, "There should be a solution to an ILP before running this function"
+		print(self.sched_sol)

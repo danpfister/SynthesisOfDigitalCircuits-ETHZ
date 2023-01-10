@@ -44,12 +44,13 @@ def main(args):
 			continue
 		ssa_parser.draw_cdfg("{0}/{1}/test.pdf".format(base_path, example_name))
 
-		scheduler = Scheduler(ssa_parser, "no_pipeline", log=log)
+		scheduler = Scheduler(ssa_parser, "pipelined", log=log)
 		scheduler.create_scheduling_ilp()
 		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
 		resource_manager = Resources(ssa_parser, { 'load' : 2, 'add' : 1 }, log=log)
 		resource_manager.add_resource_constraints(ilp, constraints, opt_function)
 		scheduler.solve_scheduling_ilp(base_path, example_name)
+		scheduler.print_gantt_chart()
 
 	if frontend_only:
 		log.info("Early execution termination\n\nBye :)")
