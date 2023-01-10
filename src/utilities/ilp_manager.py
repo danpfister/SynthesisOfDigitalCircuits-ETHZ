@@ -71,8 +71,9 @@ class Opt_Function:
 			self.log.error("Coefficient {0} is not numeric!".format(coeff))
 			return
 		if var_name in self.function_coeff:
-			print("[WARNING] The variable {0} is already present in the optimization function.".format(var_name))
-			print("Old coefficient : {1}\nNew Coefficient : {2}".format(self.function_coeff[var_name], coeff))
+			warning_string = "The variable {0} is already present in the optimization function.".format(var_name)
+			warning_string += "\nOld coefficient : {1}\nNew Coefficient : {2}".format(self.function_coeff[var_name], coeff)
+			self.log.warning(warning_string)
 		self.function_coeff[self.ilp_obj.get_variable(var_name)] = coeff
 	
 	# function to remove a variable from the optimization function
@@ -282,7 +283,7 @@ class ILP:
 		solver = ilp.getSolver(self.get_solver(), msg=0) # msg=0 enforces no output of the ILP solver
 		self.status = self.model.solve(solver)
 		if(self.status != 1):
-			print("[WARNING] ILP problem is unfeasible")
+			self.log.warning("ILP problem is unfeasible")
 		return self.status
 
 	# function to print the ILP formulation
