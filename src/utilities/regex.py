@@ -35,6 +35,7 @@ binary_instructions = {
 	'urem': r'(\S+) = urem (\S+) (\S+), (\S+)', 
 	'srem': r'(\S+) = srem (\S+) (\S+), (\S+)', 
 	'frem': r'(\S+) = frem ' + fast_math_flags + '(\S+) (\S+), (\S+)', 
+	'shl':  r'(\S+) = shl ' + r'(exact )?' + '(\S+) (\S+), (\S+)',    
 	'lshr':  r'(\S+) = lshr ' + r'(exact )?' + '(\S+) (\S+), (\S+)',    
 	'ashr':  r'(\S+) = ashr ' + r'(exact )?' + '(\S+) (\S+), (\S+)',    
 	'and':   r'(\S+) = and (\S+) (\S+), (\S+)', 
