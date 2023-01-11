@@ -247,7 +247,9 @@ class Parser():
 	# function to connect branch(es) with phi(s)
 	def create_bb_control_signals(self):
 		assert(self.dic_nodes != None) # check that the nodes dictionary has been already created
-		assert("br" in self.dic_nodes and "phi" in self.dic_nodes) # check that phi(s) and branch(es) have been already included
+		if not("br" in self.dic_nodes) or not("phi" in self.dic_nodes): # check that phi(s) and branch(es) have been already included
+			assert len(list(get_cdfg_nodes(self.cfg))) == 1, "Branch(es) and Phi(s) should be present if there are multiple BBs"
+			return
 		branch_nodes_list = self.dic_nodes["br"]
 		phi_nodes_list = self.dic_nodes["phi"]
 		for branch_name in branch_nodes_list:

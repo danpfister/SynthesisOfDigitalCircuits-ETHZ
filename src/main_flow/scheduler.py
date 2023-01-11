@@ -202,7 +202,7 @@ class Scheduler:
 		return self.ilp, self.constraints, self.opt_fun
 
 	# function to get the gantt chart of a scheduling 
-	def print_gantt_chart(self):
+	def print_gantt_chart(self, chart_title="Untitled", file_path=None):
 		assert self.sched_sol != None, "There should be a solution to an ILP before running this function"
 		variables = []
 		start_time = []
@@ -230,4 +230,7 @@ class Scheduler:
 		if self.II != None: # adding II information on the plot
 			plt.hlines(y=-1, xmin=0, xmax=self.II, color='r', linestyle = '-')
 			plt.text(self.II/2-0.35, -2, "II = {0}".format(int(self.II)), color='r')
+		plt.title(chart_title)
+		if file_path != None:
+			plt.savefig(file_path)
 		plt.show()

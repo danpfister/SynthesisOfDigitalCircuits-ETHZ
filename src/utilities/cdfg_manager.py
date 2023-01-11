@@ -77,7 +77,6 @@ def is_control_edge(cdfg, src, dst):
 	https://en.wikipedia.org/wiki/Topological_sorting#Depth-first_search '''
 
 def get_topological_order(cdfg):
-	print(type(cdfg))
 	# node_list: historical ordering
 	# temp_list: a DFS run
 	node_list, temp_list = [], []

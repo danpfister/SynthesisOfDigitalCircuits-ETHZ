@@ -34,6 +34,8 @@ def main(args):
 	for example_name in examples_list:
 		if example_name == "":
 			continue
+
+		log.info("*** BENCHMARK {0} ***".format(example_name))
 		# the path of the ssa file should be base_path/example_name/reports/example_name.cpp_mem2reg_constprop_simplifycfg_die.ll
 		path_ssa_example = "{0}/{1}/reports/{1}.cpp_mem2reg_constprop_simplifycfg_die.ll".format(base_path, example_name)
 
@@ -44,13 +46,15 @@ def main(args):
 			continue
 		ssa_parser.draw_cdfg("{0}/{1}/test.pdf".format(base_path, example_name))
 
-		scheduler = Scheduler(ssa_parser, "asap", log=log)
+		scheduling_type = "asap"
+		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
 		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
 		resource_manager = Resources(ssa_parser, { 'load' : 2, 'add' : 1 }, log=log)
 		resource_manager.add_resource_constraints(ilp, constraints, opt_function)
 		scheduler.solve_scheduling_ilp(base_path, example_name)
-		scheduler.print_gantt_chart()
+		chart_title = "{0} - {1}".format(scheduling_type, example_name)
+		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
 
 	if frontend_only:
 		log.info("Early execution termination\n\nBye :)")
