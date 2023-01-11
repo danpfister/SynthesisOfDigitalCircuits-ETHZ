@@ -63,7 +63,7 @@ class Scheduler:
 		self.opt_fun = Opt_Function(self.ilp, log=log)
 
 		# remove all branch nodes, they force the II to be the same as iteration latency
-		self.cdfg.remove_nodes_from([ n for n in get_cdfg_nodes(self.cdfg) if n.attr['type'] == 'br' ]) 
+		#self.cdfg.remove_nodes_from([ n for n in get_cdfg_nodes(self.cdfg) if n.attr['type'] == 'br' ]) 
 
 		# remove all constant nodes
 		self.cdfg.remove_nodes_from([ n for n in get_cdfg_nodes(self.cdfg) if n.attr['type'] == 'constant' ]) 
@@ -208,16 +208,23 @@ class Scheduler:
 		start_time = []
 		duration = []
 		latest_tick = 0 # variable to find last tick for xlables
+		bars_colors = []
 		for node_name in get_cdfg_nodes(self.cdfg):
 			if 'label' in self.cdfg.get_node(node_name).attr:
 				variables.append(node_name)
 				attributes = self.cdfg.get_node(node_name).attr
 				start_time.append(float(attributes['latency'])) # start time of each operation
-				duration.append(float(get_node_latency(attributes))) # duration of each operation
+				node_latency = float(get_node_latency(attributes))
+				if node_latency == 0.0:
+					node_latency = 0.1
+					bars_colors.append("firebrick")
+				else:
+					bars_colors.append("dodgerblue")
+				duration.append(node_latency) # duration of each operation
 				tmp_tick = float(attributes['latency']) + float(get_node_latency(attributes))
 				if tmp_tick > latest_tick:
 					latest_tick = tmp_tick
-		plt.barh(y=variables, left=start_time, width=duration)
+		plt.barh(y=variables, left=start_time, width=duration, color=bars_colors)
 		plt.grid()
 		plt.xticks([i for i in range(int(latest_tick)+1)])
 		if self.II != None: # adding II information on the plot
