@@ -7,9 +7,9 @@ import logging
 # function to do sqrt in trivial way
 def sqrt(n):
 	i = 0
-	while (i*i) <= n:
+	while (i*i) < n:
 		i+=1
-	return i-1
+	return i
 
 ############################################################################################################################################
 ############################################################################################################################################
@@ -162,7 +162,7 @@ class Scheduler:
 			self.constraints.add_constraint({f'svssink_0' : 1}, "leq", 1)
 			self.constraints.add_constraint({f'svssink_1' : 1}, "leq", 10)
 			self.constraints.add_constraint({f'svssink_2' : 1}, "leq", 11)
-
+		
 			for n in get_cdfg_nodes(self.cdfg): # we try to minimize all nodes delays
 				self.opt_fun.add_variable(f'sv{n}', -1)
 		elif self.sched_tech == 'pipelined':
