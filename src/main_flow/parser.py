@@ -264,40 +264,45 @@ class Parser():
 	def add_artificial_nodes(self):
 		# leaf nodes: all the exiting nodes of BBs
 		leaf_nodes = [] 
-		for n in get_cdfg_nodes(self.cdfg):
+		for node in get_cdfg_nodes(self.cdfg):
 			# get all edges that are not back edges
-			out_edges = [ e for e in get_dag_edges(self.cdfg) if str(e[0]) == str(n)]
+			out_edges = [ edge for edge in get_dag_edges(self.cdfg) if str(edge[0]) == str(node)]
 
-			# if n has no predecessors, then for sure we connect it to supersource
+			# if node has no predecessors, then for sure we connect it to supersource
 			if out_edges == []:
-				leaf_nodes.append(n)
-			# if n has predecessors from a different BB, then we connect it to a supersource
+				leaf_nodes.append(node)
+			# if node has predecessors from a different BB, then we connect it to a supersource
 			else:
-				for e in out_edges:
-					id_pred = self.cdfg.get_node(e[0]).attr['id']
-					id_succ = self.cdfg.get_node(e[1]).attr['id']
-					if id_pred != id_succ:
-						leaf_nodes.append(n)
+				is_leaf = True
+				for edge in out_edges:
+					id_pred = self.cdfg.get_node(edge[0]).attr['id'] # BBid of the edge's src
+					id_succ = self.cdfg.get_node(edge[1]).attr['id'] # BBid of the edge's dst
+					if id_pred == id_succ and not(edge in get_back_edges(self.cdfg)): # if src and dst have same BBid and the edge is not a back-edge, the src node is not a leaf
+						is_leaf = False
 						break
-		self.log.debug(f'list of leaf nodes: {leaf_nodes}')
-		
+				if is_leaf:
+					leaf_nodes.append(node)
+		self.log.debug(f'List of leaf nodes: {leaf_nodes}')
 		# root_nodes: all the entering nodes of BBs
 		root_nodes = [] # root nodes: all the dfg nodes that have no predecessors in the same BB
-		for n in get_cdfg_nodes(self.cdfg):
-			in_edges = [ e for e in get_dag_edges(self.cdfg) if str(e[1]) == str(n)]
+		for node in get_cdfg_nodes(self.cdfg):
+			in_edges = [ edge for edge in get_dag_edges(self.cdfg) if str(edge[1]) == str(node)]
 
-			# if n has no successors, then for sure we connect it to a supersink
+			# if node has no successors, then for sure we connect it to a supersink
 			if in_edges == []:
-				root_nodes.append(n)
-			# if n has successors from a different BB, then we connect it to a supersink
+				root_nodes.append(node)
+			# if node has successors from a different BB, then we connect it to a supersink
 			else:
-				for e in in_edges:
-					id_pred = self.cdfg.get_node(e[0]).attr['id']
-					id_succ = self.cdfg.get_node(e[1]).attr['id']
-					if id_pred != id_succ:
-						root_nodes.append(n)
+				is_root = True
+				for edge in in_edges:
+					id_pred = self.cdfg.get_node(edge[0]).attr['id']
+					id_succ = self.cdfg.get_node(edge[1]).attr['id']
+					if id_pred == id_succ and not(edge in get_back_edges(self.cdfg)): # if src and dst have same BBid and the edge is not a back-edge, the dst node is not a root
+						is_root = False
 						break
-		self.log.debug(f'list of root nodes: {root_nodes}')
+				if is_root:
+					root_nodes.append(node)
+		self.log.debug(f'List of root nodes: {root_nodes}')
 
 		# connect the root nodes and the leaf nodes to supernodes
 		for bb in get_cdfg_nodes(self.cfg):
