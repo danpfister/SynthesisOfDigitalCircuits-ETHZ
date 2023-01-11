@@ -38,10 +38,13 @@ def sqrt(n):
 #					- set_sched_technique : set scheduling technique
 #					- set_data_dependency_constraints: add data dependency constraints to the constraints
 #					- set_II_constraints: add II constraints to the constraints
+#					- add_max_latency_constraint : add max_latency constraint and optimization
+#					- add_sink_delays_constraints : add sink delays constraints for alap (sink_delays should be a dictionary)
 #					- set_opt_function: set optimization function according to the self.sched_tech
 #					- create_scheduling_ilp : create the ILP of the scheduling
 #					- solve_scheduling_ilp: run the solver on top of the constrants from set_*_constraints and the objective function from set_opt_function
 #					- get_ilp_tuple : get ilp, constraints and optimization function
+#					- get_sink_delays: get delays of sinks after computing solution (used by ALAP)
 #					- print_gantt_chart : prints the gantt chart of a scheduling solution
 ############################################################################################################################################
 ############################################################################################################################################
@@ -142,6 +145,14 @@ class Scheduler:
 		for n in ssinks: # we try to minimize the latest SSINK
 			self.constraints.add_constraint({f'sv{n}' : -1, f'max_latency' : 1}, "geq", 0)
 
+	# function to add sink delays constraints for alap (sink_delays should be a dictionary)
+	def add_sink_delays_constraints(self, sink_delays):
+		for sink in sink_delays:
+			if not(sink in get_cdfg_nodes(self.cdfg)):
+				self.log.error("The sink node {} does not belong to the cdfg".format(sink))
+				continue
+			self.constraints.add_constraint({"sv{}".format(sink) : 1}, "leq", sink_delays[sink])
+
 	# function for setting the optimiztion funciton, according to the optimization option
 	def set_opt_function(self):
 		if self.sched_tech == 'no_pipeline':
@@ -157,11 +168,6 @@ class Scheduler:
 		elif self.sched_tech == 'alap':
 			# ======================== Latency Maximization per node Objective ==========================#
 			# objective: minimize the end-to-end latency
-			self.add_max_latency_constraint()
-
-			self.constraints.add_constraint({f'svssink_0' : 1}, "leq", 1)
-			self.constraints.add_constraint({f'svssink_1' : 1}, "leq", 10)
-			self.constraints.add_constraint({f'svssink_2' : 1}, "leq", 11)
 		
 			for n in get_cdfg_nodes(self.cdfg): # we try to minimize all nodes delays
 				self.opt_fun.add_variable(f'sv{n}', -1)
@@ -175,12 +181,15 @@ class Scheduler:
 			self.log.error(f'Not implemented option! {self.sched_tech}')
 			raise NotImplementedError
 
-	# function to create the ILP of the scheduling
-	def create_scheduling_ilp(self):
+	# function to create the ILP of the scheduling # sink delays corresponds to minimum delay of super_sinks using asap
+	def create_scheduling_ilp(self, sink_delays=None):
 		if self.sched_tech == "no_pipeline":
 			self.set_data_dependency_constraints()
 		elif self.sched_tech == "asap" or self.sched_tech == "alap":
 			self.set_data_dependency_constraints(break_bb_connections=True)
+			if self.sched_tech == "alap":
+				assert sink_delays!= None and sink_delays != [], "ALAP scheduling needs the specification of sink delays as maximum allowed delay"
+				self.add_sink_delays_constraints(sink_delays)
 		elif self.sched_tech == "pipelined":
 			self.set_II_constraints()
 		self.set_opt_function()
@@ -190,7 +199,7 @@ class Scheduler:
 		# log the result
 		self.ilp.print_ilp("{0}/{1}/output.lp".format(base_path, example_name))
 		res = self.ilp.solve_ilp()
-		assert res == 1, "The ILP problem is unfeasible"
+		assert res == 1, "The ILP problem cannot be solved"
 		self.sched_sol = self.ilp.get_ilp_solution() # save solution in an attribute
 		# iterate through the different variables to obtain results
 		for var, value in self.ilp.get_ilp_solution().items():
@@ -213,6 +222,16 @@ class Scheduler:
 	# function to get ilp, constraints and optimization function
 	def get_ilp_tuple(self):
 		return self.ilp, self.constraints, self.opt_fun
+
+	# function to get delays of sinks after computing solution (used by ALAP)
+	def get_sink_delays(self):
+		assert self.sched_sol != None, "You need to run the solution before retrieving sink delays"
+		output = {}
+		for var, value in self.ilp.get_ilp_solution().items():
+			# check if the node contains svssink word
+			if re.search(r'^svssink', var):
+				output[var.replace("sv","")] = value
+		return output
 
 	# function to get the gantt chart of a scheduling 
 	def print_gantt_chart(self, chart_title="Untitled", file_path=None):

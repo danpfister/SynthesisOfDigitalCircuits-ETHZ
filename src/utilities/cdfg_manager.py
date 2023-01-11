@@ -18,7 +18,7 @@
 
 # function to retrieve the delay from the type
 def get_node_latency(attr):
-	if attr['type'] == 'mul':
+	if attr['type'] == 'mul' or attr['type'] == 'div':
 		return 4
 	elif attr['type'] == 'load':
 		return 1

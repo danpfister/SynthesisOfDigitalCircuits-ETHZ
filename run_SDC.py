@@ -50,6 +50,14 @@ def main(args):
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
 		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
+		scheduler.solve_scheduling_ilp(base_path, example_name)
+		sink_delays = scheduler.get_sink_delays()
+
+
+		scheduling_type = "alap"
+		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
+		scheduler.create_scheduling_ilp(sink_delays)
+		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
 		resource_manager = Resources(ssa_parser, { 'load' : 2, 'add' : 1 }, log=log)
 		resource_manager.add_resource_constraints(ilp, constraints, opt_function)
 		scheduler.solve_scheduling_ilp(base_path, example_name)
