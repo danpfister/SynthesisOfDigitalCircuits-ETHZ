@@ -309,12 +309,13 @@ class Parser():
 		# connect the root nodes and the leaf nodes to supernodes
 		for bb in get_cdfg_nodes(self.cfg):
 			id_ = bb.attr['id']
-			self.cdfg.add_node(f'ssrc_{id_}',id=id_,type='supersource',style='dashed',label=f'ssrc BB{id_}')
+			bbID = bb.attr['bbID']
+			self.cdfg.add_node(f'ssrc_{id_}',id=id_, bbID=bbID, type='supersource',style='dashed',label=f'ssrc BB{id_}')
 			# connect the super source node to the entering nodes of each BB, that is not a constant (which we have already removed)
 			for n in root_nodes: 
 				if n.attr['id'] == id_:
 					self.cdfg.add_edge(f'ssrc_{id_}', n)
-			self.cdfg.add_node(f'ssink_{id_}', id=id_, type = 'supersink', style = 'dashed', label = f'ssink BB{id_}')
+			self.cdfg.add_node(f'ssink_{id_}', id=id_, bbID=bbID, type = 'supersink', style = 'dashed', label = f'ssink BB{id_}')
 			# connect the super sink node to the exiting nodes of each BB 
 			for n in leaf_nodes: 
 				if n.attr['id'] == id_:

@@ -4,6 +4,13 @@ import matplotlib.pyplot as plt
 import re
 import logging
 
+# function to do sqrt in trivial way
+def sqrt(n):
+	i = 0
+	while (i*i) <= n:
+		i+=1
+	return i-1
+
 ############################################################################################################################################
 ############################################################################################################################################
 #
@@ -79,7 +86,7 @@ class Scheduler:
 		self.sched_tech = technique
 
 	# function for setting the data dependency constraint between two nodes
-	def set_data_dependency_constraints(self):
+	def set_data_dependency_constraints(self, break_bb_connections=False):
 		'''
 		if there is a forward dependency between node src and dst
 
@@ -92,6 +99,9 @@ class Scheduler:
 		for edge in get_cdfg_edges(self.cdfg): # Dependency constraint: per each edge
 			if edge.attr['style'] != 'dashed':
 				src, dst = self.cdfg.get_node(edge[0]), self.cdfg.get_node(edge[1])
+				# if the break_bb_connections is set to True and the edge is between blocks of different BBs, the data dependency is ignored
+				if break_bb_connections and src.attr['id'] != dst.attr['id']: 
+					continue
 				self.log.debug(f'Adding dependency constraint {src} -> {dst}')
 				# sv_src >= sv_dst + latency; assume that the latency of each operation is 1 for now
 				self.constraints.add_constraint({f'sv{src}' : -1, f'sv{dst}' : 1}, "geq", get_node_latency(src.attr) )
@@ -167,8 +177,11 @@ class Scheduler:
 
 	# function to create the ILP of the scheduling
 	def create_scheduling_ilp(self):
-		self.set_data_dependency_constraints()
-		if self.sched_tech == "pipelined":
+		if self.sched_tech == "no_pipeline":
+			self.set_data_dependency_constraints()
+		elif self.sched_tech == "asap" or self.sched_tech == "alap":
+			self.set_data_dependency_constraints(break_bb_connections=True)
+		elif self.sched_tech == "pipelined":
 			self.set_II_constraints()
 		self.set_opt_function()
 
@@ -204,33 +217,52 @@ class Scheduler:
 	# function to get the gantt chart of a scheduling 
 	def print_gantt_chart(self, chart_title="Untitled", file_path=None):
 		assert self.sched_sol != None, "There should be a solution to an ILP before running this function"
-		variables = []
-		start_time = []
-		duration = []
-		latest_tick = 0 # variable to find last tick for xlables
-		bars_colors = []
+		variables = {}
+		start_time = {}
+		duration = {}
+		latest_tick = {} # variable to find last tick for xlables
+		bars_colors = {}
 		for node_name in get_cdfg_nodes(self.cdfg):
 			if 'label' in self.cdfg.get_node(node_name).attr:
-				variables.append(node_name)
 				attributes = self.cdfg.get_node(node_name).attr
-				start_time.append(float(attributes['latency'])) # start time of each operation
+				bb_id = attributes['id']
+				if not(bb_id in variables):
+					variables[bb_id] = []
+					start_time[bb_id] = []
+					duration[bb_id] = []
+					bars_colors[bb_id] = []
+					latest_tick[bb_id] = 0
+				variables[bb_id].append(node_name)
+				start_time[bb_id].append(float(attributes['latency'])) # start time of each operation
 				node_latency = float(get_node_latency(attributes))
 				if node_latency == 0.0:
 					node_latency = 0.1
-					bars_colors.append("firebrick")
+					bars_colors[bb_id].append("firebrick")
 				else:
-					bars_colors.append("dodgerblue")
-				duration.append(node_latency) # duration of each operation
+					bars_colors[bb_id].append("dodgerblue")
+				duration[bb_id].append(node_latency) # duration of each operation
 				tmp_tick = float(attributes['latency']) + float(get_node_latency(attributes))
-				if tmp_tick > latest_tick:
-					latest_tick = tmp_tick
-		plt.barh(y=variables, left=start_time, width=duration, color=bars_colors)
-		plt.grid()
-		plt.xticks([i for i in range(int(latest_tick)+1)])
-		if self.II != None: # adding II information on the plot
-			plt.hlines(y=-1, xmin=0, xmax=self.II, color='r', linestyle = '-')
-			plt.text(self.II/2-0.35, -2, "II = {0}".format(int(self.II)), color='r')
-		plt.title(chart_title)
+				if tmp_tick > latest_tick[bb_id]:
+					latest_tick[bb_id] = tmp_tick
+		graphs_per_row = sqrt(len(variables))
+		#fig, axs = plt.subplots(int(len(variables)))
+		fig = plt.figure()
+		axs=[]
+		subplot_format = (graphs_per_row * 110) + 1
+
+		axs_id = 0
+		for bb_id in variables:
+			axs.append(fig.add_subplot(subplot_format))
+			subplot_format += 1
+			axs[axs_id].barh(y=variables[bb_id], left=start_time[bb_id], width=duration[bb_id], color=bars_colors[bb_id])
+			axs[axs_id].grid()
+			axs[axs_id].set_xticks([i for i in range(int(latest_tick[bb_id])+1)])
+			axs[axs_id].title.set_text("BB {}".format(bb_id))
+			if self.II != None: # adding II information on the plot
+				axs[axs_id].hlines(y=-1, xmin=0, xmax=self.II, color='r', linestyle = '-')
+				axs[axs_id].text(self.II/2-0.35, -2, "II = {0}".format(int(self.II)), color='r')
+			axs_id += 1
+		#plt.title(chart_title)
 		if file_path != None:
 			plt.savefig(file_path)
 		plt.show()
