@@ -46,23 +46,58 @@ def main(args):
 			continue
 		ssa_parser.draw_cdfg("{0}/{1}/test.pdf".format(base_path, example_name))
 
+		###################### NO PIPILINE ######################  
+		'''
+		scheduling_type = "no_pipeline"
+		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
+		scheduler.create_scheduling_ilp()
+		scheduler.solve_scheduling_ilp(base_path, example_name)
+		sink_delays = scheduler.get_sink_delays()
+		'''
+
+		###################### ASAP ######################
+		scheduling_type = "asap"
+		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
+		scheduler.create_scheduling_ilp()
+		scheduler.solve_scheduling_ilp(base_path, example_name)
+		sink_delays = scheduler.get_sink_delays()
+
+		###################### ALAP ######################
+		'''
+		scheduling_type = "alap"
+		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
+		scheduler.create_scheduling_ilp(sink_delays)
+		scheduler.solve_scheduling_ilp(base_path, example_name)
+		chart_title = "{0} - {1}".format(scheduling_type, example_name)
+		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
+		'''
+
+		###################### ASAP with RESOURCE CONSTRAINTS ######################
 		scheduling_type = "asap"
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
 		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
+		resource_manager = Resources(ssa_parser, { 'add' : 2 }, log=log)
+		for key in sink_delays:
+			sink_delays[key] = sink_delays[key] * 2
+		resource_manager.add_resource_constraints_deMicheli(ilp, constraints, opt_function, sink_delays)
 		scheduler.solve_scheduling_ilp(base_path, example_name)
-		sink_delays = scheduler.get_sink_delays()
+		chart_title = "{0} - {1}".format(scheduling_type, example_name)
+		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
 
 
+		###################### ALAP with RESOURCE CONSTRAINTS ######################
+		'''
 		scheduling_type = "alap"
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp(sink_delays)
 		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
-		resource_manager = Resources(ssa_parser, { 'load' : 2, 'add' : 1 }, log=log)
+		resource_manager = Resources(ssa_parser, { 'add' : 1 }, log=log)
 		resource_manager.add_resource_constraints(ilp, constraints, opt_function)
 		scheduler.solve_scheduling_ilp(base_path, example_name)
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
 		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
+		'''
 
 	if frontend_only:
 		log.info("Early execution termination\n\nBye :)")
