@@ -169,35 +169,46 @@ class Parser():
 				# depending on the type of instruction different information extraction are applied
 				# the match groups depend on the regex (see utilities.regex.py for detailed list of regex)
 				# binary intruction case
+				bitwidth = 0 # by default, we assign bitwidth = 0 for all operations
+				# we associate bitwidth of the variable to the operation that produces it
 				if instruction_key in binary_instructions: # instruction format: result = binary_instruction output_type input_1 input_2
 					operands = [ n for n in match.groups() if n != None][-2:]
 					result = match.group(1)
-					if instruction_key == 'icmp': label = 'icmp ' + match.group(2) + ' ' + result # icmp instruction format: result = icmp icmp_type output_type input_1 input_2
-					else: label = instruction_key + ' ' + result
+					if instruction_key == 'icmp':
+						bitwidth = 1 # comparators have boolean output
+						label = 'icmp ' + match.group(2) + ' ' + result # icmp instruction format: result = icmp icmp_type output_type input_1 input_2
+					else:
+						label = instruction_key + ' ' + result
+						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[-3])[2]
 				# unary instruction case 
 				elif instruction_key in unary_instructions:
 					if "ext" in instruction_key: # instruction format: result = unary_instruction input_type input to output_type
 						operands = [match.group(3)]
 						result = match.group(1)
 						label = instruction_key + ' ' + result
+						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[-2])[2]
 					elif instruction_key == "fneg": # fneg instruction format: result = fneg output_type input 
 						operands = [ n for n in match.groups() if n != None][-1]
 						result = match.group(1)
 						label = instruction_key + ' ' + result
+						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[-1])[2]
 				# memory instruction case
 				elif instruction_key in memory_instructions:
 					if "load" in instruction_key:
 						operands = [ match.group(5) ]
 						result = match.group(1)
 						label = 'load ' + result
+						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[1])[2]
 					elif instruction_key == 'store':
 						operands = match.group(3, 5)
 						result = 'store ' + match.group(5)
 						label = 'store ' + result
+						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[1])[2]
 					elif instruction_key == 'getelementptr':
 						operands = match.group(4, 6)
 						result = match.group(1)
 						label = instruction_key + ' ' + result
+						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[1])[2]
 				# control instruction case
 				elif instruction_key in control_instructions:
 					if instruction_key == 'ret':
@@ -217,8 +228,11 @@ class Parser():
 								match_input = re.search(input_regex,n)
 								if match_input != None:
 									operands.append(match_input.group(2))
+						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[9])[2]
 				else:
 					self.log.error("Identifying instruction '{0}'".format(instruction))
+
+				self.log.debug(f'The bitwidth of label {label} is {bitwidth}')
 
 				# update the dictionary containing the list of nodes per type
 				self.dic_nodes = update_dic_list(self.dic_nodes ,instruction_key, result.replace('%', '_'))
@@ -228,7 +242,7 @@ class Parser():
 		constants = [ op for op in operands if '%' not in op ] # constants are operands without initial '%' symbol
 		variables = [ op.replace('%', '_') for op in operands if '%' in op ] # variables are operands with initial '%' symbol
 		if result != '':
-			cdfg.add_node(f'{result}', label = label.replace('%', '_'), id = self.dic_bbID[bbID], bbID = bbID, instruction = instruction.strip(), type=instruction_key) # add node related to the instruction
+			cdfg.add_node(f'{result}', label = label.replace('%', '_'), id = self.dic_bbID[bbID], bbID = bbID, instruction = instruction.strip(), type=instruction_key, bitwidth=bitwidth) # add node related to the instruction
 			self.log.debug("Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
 			for input_ in variables: # add a node for each input variable if not present and the edge connecting it to result
 				if input_ in self.function_inputs: 
@@ -240,7 +254,7 @@ class Parser():
 				cdfg.add_edge(f'{input_}', f'{result}')
 				self.log.debug("Added variable node {0} and edge {0} -> {1}".format(input_, result))
 			for cst_id_, input_ in enumerate(constants): # add a node for each input constant and the edge connecting it to result, each constant should have an unique identifier to distinguish
-				cdfg.add_node(f'cst_{result}_{cst_id_}', id = self.dic_bbID[bbID], bbID = bbID,  type='constant', label=f'{input_}', value=f'{cst_id_}')
+				cdfg.add_node(f'cst_{result}_{cst_id_}', id = self.dic_bbID[bbID], bbID = bbID,  type='constant', label=f'{input_}', value=f'{cst_id_}') # TODO: maybe we don't need the bitwidth for constant nodes, even for functional correctness reasons
 				cdfg.add_edge(f'cst_{result}_{cst_id_}', f'{result}')
 				self.log.debug("Added constant node {0} and edge {0} -> {1}".format(input_, result))
 
