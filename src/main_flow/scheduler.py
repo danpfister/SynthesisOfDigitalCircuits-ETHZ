@@ -110,12 +110,12 @@ class Scheduler:
 				self.constraints.add_constraint({f'sv{src}' : -1, f'sv{dst}' : 1}, "geq", get_node_latency(src.attr) )
 
 
-	# function for setting the initialization interval constraint from the back edges
-	def set_II_constraints(self):
+	# function for setting the initialization interval constraint from the back edges to the value II_value
+	def set_II_constraints(self, II_value):
 		assert self.sched_tech != 'no_pipeline', 'sanity check'
 		# ===================== II Constraints ====================== #
 		'''
-		if there is a inter-iteration dependency between node n and v
+		if there is a inter-iteration dependency between node n and v (which corresponds to a backedge)
 
 		n -----> v
 
@@ -123,9 +123,9 @@ class Scheduler:
 		sv_n + latency_n <= sv_v + II * dist_nv
 
 		'''
-		# define one II per each BB
-		for bb in get_cdfg_nodes(self.cfg): 
-			self.ilp.add_variable(f'II_{bb}', lower_bound = 1, var_type='i')
+		# define one II for the external loop
+		self.ilp.add_variable(f'II', lower_bound = 1, var_type='i')
+		self.constraints.add_constraint({f'II':1}, "eq", II_value) # constraint to set II to a certain value
 
 		# cross-iteration constraint: per each backedge
 		for e in get_back_edges(self.cdfg): 
@@ -133,8 +133,8 @@ class Scheduler:
 			src, dst = self.cdfg.get_node(e[0]), self.cdfg.get_node(e[1])
 			assert src.attr['bbID'] == dst.attr['bbID'], 'sanity check failed: II defined only for single BB for now'
 			# sv_src + latency_u <= sv_dst + II * Dist; if there is an back edge assume that for now the dependencies from the back edges all have dist = 1
-			# TODO: determine the dependency distance?
-			self.constraints.add_constraint({ f'sv{src}' : -1, f'sv{dst}' : 1, f'II_{src.attr["bbID"]}' : 1 }, "geq", get_node_latency(src.attr)) 
+			# TODO: add memory dependency distance
+			self.constraints.add_constraint({ f'sv{src}' : -1, f'sv{dst}' : 1, f'II' : 1 }, "geq", get_node_latency(src.attr)) 
 
 	# function to add max_latency constraint and optimization
 	def add_max_latency_constraint(self):

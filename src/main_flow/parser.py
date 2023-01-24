@@ -186,7 +186,7 @@ class Parser():
 						operands = [match.group(3)]
 						result = match.group(1)
 						label = instruction_key + ' ' + result
-						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[-2])[2]
+						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[-1])[2]
 					elif instruction_key == "fneg": # fneg instruction format: result = fneg output_type input 
 						operands = [ n for n in match.groups() if n != None][-1]
 						result = match.group(1)
@@ -198,7 +198,7 @@ class Parser():
 						operands = [ match.group(5) ]
 						result = match.group(1)
 						label = 'load ' + result
-						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[1])[2]
+						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[2])[2]
 					elif instruction_key == 'store':
 						operands = match.group(3, 5)
 						result = 'store ' + match.group(5)
