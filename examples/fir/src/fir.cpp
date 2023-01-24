@@ -15,7 +15,7 @@ int fir (in_int_t d_i[1000], in_int_t idx[1000] ) {
 	int tmp=0;
 
 	For_Loop: for (i=0;i<1000;i++) {
-		tmp += idx [i] * d_i[999-i];
+		tmp += (idx [i] * 51) + (d_i[((999-i)>> 4)+5] * 23) ;
 
 	}
 

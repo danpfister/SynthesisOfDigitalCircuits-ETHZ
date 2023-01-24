@@ -199,7 +199,9 @@ class Scheduler:
 		# log the result
 		self.ilp.print_ilp("{0}/{1}/output.lp".format(base_path, example_name))
 		res = self.ilp.solve_ilp()
-		assert res == 1, "The ILP problem cannot be solved"
+		if res != 1:
+			self.log.warn("The ILP problem cannot be solved")
+			return res
 		self.sched_sol = self.ilp.get_ilp_solution() # save solution in an attribute
 		# iterate through the different variables to obtain results
 		for var, value in self.ilp.get_ilp_solution().items():
@@ -218,6 +220,7 @@ class Scheduler:
 		elif 'max_II' in self.ilp.get_ilp_solution():
 			self.log.info(f'The maximum II for this cdfg is {self.ilp.get_ilp_solution()["max_II"]}')
 			self.II = self.ilp.get_ilp_solution()["max_II"]
+		return res
 
 	# function to get ilp, constraints and optimization function
 	def get_ilp_tuple(self):

@@ -51,7 +51,7 @@ def main(args):
 		scheduling_type = "no_pipeline"
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
-		scheduler.solve_scheduling_ilp(base_path, example_name)
+		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		sink_delays = scheduler.get_sink_delays()
 		'''
 
@@ -59,7 +59,7 @@ def main(args):
 		scheduling_type = "asap"
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
-		scheduler.solve_scheduling_ilp(base_path, example_name)
+		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		sink_delays = scheduler.get_sink_delays()
 
 		###################### ALAP ######################
@@ -67,7 +67,7 @@ def main(args):
 		scheduling_type = "alap"
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp(sink_delays)
-		scheduler.solve_scheduling_ilp(base_path, example_name)
+		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
 		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
 		'''
@@ -82,7 +82,7 @@ def main(args):
 		for key in sink_delays:
 			sink_delays[key] = sink_delays[key] * 2
 		resource_manager.add_resource_constraints_sdc(ilp, constraints, opt_function, sink_delays)
-		scheduler.solve_scheduling_ilp(base_path, example_name)
+		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
 		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_resource_ADD_1.pdf".format(base_path, example_name, scheduling_type))
 		'''
@@ -95,7 +95,7 @@ def main(args):
 		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
 		resource_manager = Resources(ssa_parser, { 'add' : 1 }, log=log)
 		resource_manager.add_resource_constraints(ilp, constraints, opt_function)
-		scheduler.solve_scheduling_ilp(base_path, example_name)
+		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
 		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
 		'''
@@ -107,7 +107,7 @@ def main(args):
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
 		scheduler.set_II_constraints(3)
-		scheduler.solve_scheduling_ilp(base_path, example_name)
+		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
 		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_asap_pipelined.pdf".format(base_path, example_name, scheduling_type))
 		'''
@@ -118,7 +118,7 @@ def main(args):
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
 		scheduler.set_II_constraints(3)
-		scheduler.solve_scheduling_ilp(base_path, example_name)
+		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
 		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_asap_pipelined.pdf".format(base_path, example_name, scheduling_type))
 
