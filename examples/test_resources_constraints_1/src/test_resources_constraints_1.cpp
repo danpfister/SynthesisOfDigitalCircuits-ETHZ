@@ -10,7 +10,7 @@ int test_resources_constraints_1(int a, int b, int c, int n) {
 	else {
 		a = b % (a + c);
 	}
-	c = (a * n) ^ (c * b) ;
+	c = (a * n) ^ ((c + b) * b) ;
 	return c;
 }
 
