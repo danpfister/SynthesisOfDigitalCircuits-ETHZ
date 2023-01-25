@@ -76,7 +76,7 @@ class Scheduler:
 		#self.cdfg.remove_nodes_from([ n for n in get_cdfg_nodes(self.cdfg) if n.attr['type'] == 'br' ]) 
 
 		# remove all constant nodes
-		self.cdfg.remove_nodes_from([ n for n in get_cdfg_nodes(self.cdfg) if n.attr['type'] == 'constant' ]) 
+		#self.cdfg.remove_nodes_from([ n for n in get_cdfg_nodes(self.cdfg) if n.attr['type'] == 'constant' ]) 
 
 		# add one ilp variable per each node
 		for n in get_cdfg_nodes(self.cdfg): # create a scheduling variable (sv) per each CDFG node
@@ -173,10 +173,9 @@ class Scheduler:
 				self.opt_fun.add_variable(f'sv{n}', -1)
 		elif self.sched_tech == 'pipelined':
 			# ======================== II Minimization Objective ===============================#
-			self.ilp.add_variable(f'max_II', lower_bound = 0,  var_type="i")
-			self.opt_fun.add_variable(f'max_II', 1)
-			for bb in get_cdfg_nodes(self.cfg): # TODO: only minimize the II of the loop BB
-				self.constraints.add_constraint({f'II_{bb}' : -1, 'max_II' : 1}, 'geq', 0)
+			for n in get_cdfg_nodes(self.cdfg): # we try to minimize all nodes delays
+				self.opt_fun.add_variable(f'sv{n}', 1)
+			# II minimization happens in the set_II_constraints function
 		else:
 			self.log.error(f'Not implemented option! {self.sched_tech}')
 			raise NotImplementedError
@@ -191,7 +190,7 @@ class Scheduler:
 				assert sink_delays!= None and sink_delays != [], "ALAP scheduling needs the specification of sink delays as maximum allowed delay"
 				self.add_sink_delays_constraints(sink_delays)
 		elif self.sched_tech == "pipelined":
-			self.set_II_constraints()
+			self.set_data_dependency_constraints()
 		self.set_opt_function()
 
 	# function to solve the ilp and obtain scheduling

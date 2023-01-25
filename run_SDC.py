@@ -103,7 +103,7 @@ def main(args):
 		###################### ASAP pipelined ######################
 
 		'''
-		scheduling_type = "asap"
+		scheduling_type = "pipelined"
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
 		scheduler.set_II_constraints(3)
@@ -114,14 +114,18 @@ def main(args):
 
 		###################### ASAP pipelined resource constrained ######################
 
-		scheduling_type = "asap"
+		scheduling_type = "pipelined"
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
 		scheduler.set_II_constraints(3)
 		status = scheduler.solve_scheduling_ilp(base_path, example_name)
+		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
+		resource_manager = Resources(ssa_parser, { 'mul' : 1 }, log=log)
+		budget_iterations = 10
+		status_res = resource_manager.add_resource_constraints_pipelined(ilp, constraints, opt_function, budget_iterations)
+		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
 		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_asap_pipelined.pdf".format(base_path, example_name, scheduling_type))
-
 
 
 

@@ -5,6 +5,78 @@ import logging
 ############################################################################################################################################
 ############################################################################################################################################
 #
+#	`MRT` CLASS
+#
+############################################################################################################################################
+#	DESCRIPTION:
+#					The following class is used for the Modulo Reservation Table (MRT) for resource sharing in pipelined SDC
+############################################################################################################################################
+#	ATTRIBUTES:
+#					- mrt : is the MRT dictionary where the keys are the clock cycles and the values are lists of operations
+############################################################################################################################################
+#	FUNCTIONS:
+#					- generate : it generates the MRT for a given ILP solution
+#					- is_legal : it checks if the presence of an operation at a given clock respects the resources constraint
+############################################################################################################################################
+############################################################################################################################################
+
+class MRT: # Modulo Reservation Table (MRT)
+	def __init__(self, ilp):
+		self.generate(ilp)
+
+	# function to generate the MRT
+	def generate(self, ilp):
+		'''
+		Generate Modulo Reservation Table to plot the pipelined scheduling of a given ilp solution
+
+		II <- ilp.get_II()
+		max_latency <- ilp.get_maxLatency()
+		
+		output_dictionary <- {}
+		for clock in max_latency: 												# iterate until max_latency
+			operations_clock <- ilp.get_operations(clock) 						# operations of first iteration
+			number_overlapping_iterations <- clock/II 							# number of overlapping iterations at step clock
+			for iteration_number in (1, number_overlapping_iterations):			# iterate through overlapping iterations
+				clock_iteration <- clock - II*iteration_number 					# clock wrt iteration iteration_number
+				operations_overlapping <- ilp.get_operations(clock_iteration)	# get operations in overlapping iteration iteration_number
+				operations_clock.extend(operations_overlapping)					# updating the total number of operations
+			output_dictionary[clock] = operations_clock
+		return output_dictionary
+
+		'''
+		II = ilp.get_II_solution()
+		max_latency = int(ilp.get_max_latency_solution())
+		self.mrt = {}
+		for clock in range(max_latency):
+			operations_clock = ilp.get_variables_solution(clock)
+			number_overlapping_iterations = int(clock/II)
+			for iteration_number in range(1, number_overlapping_iterations+1):
+				clock_iteration = clock - (II * iteration_number)
+				operations_overlapping = ilp.get_variables_solution(clock_iteration)
+				operations_clock.extend(operations_overlapping)
+			self.mrt[clock] = operations_clock
+		return self.mrt
+
+	# function to check legal MRT
+	def is_legal(self, operation, clock_time, max_allowed_instances, operations_solved):
+		'''
+		Check if the number of operations of type operation respects the resource constraint (of max_allowed_instances) given the operations for which the time has been set already (operations_solved)
+		'''
+		list_operations = self.mrt[clock_time]
+		assert operation in list_operations, "The operation considered ({operation}) should be present in the operation list ({list_operations}) for clock {clock_time}"
+		cnt_operations = 0
+		for op in list_operations: # check if in the list of operations happening in one clock exceed the maximum number of operations 
+			if op in operations_solved or op == operation:
+				cnt_operations += 1
+		if cnt_operations > max_allowed_instances:
+			return False
+		else:
+			return True
+
+
+############################################################################################################################################
+############################################################################################################################################
+#
 #	`RESOURCE` CLASS
 #
 ############################################################################################################################################
@@ -168,3 +240,92 @@ class Resources:
 					self.constraint_set.add_constraint(resource_constraint, "eq", 1) # desaquality (4) for each resource type
 				
 			self.constraint_set.add_constraint({"sv"+sink_name : 1}, "leq", sink_delay)
+
+
+
+
+	# function to add resources constraints for pipelined scheduling
+	def add_resource_constraints_pipelined(self, ilp, constraints, opt_function, budget):
+		self.set_ilp_tuple(ilp, constraints, opt_function)
+		'''
+		Given an initial SDC scheduling, each operation using a specific resource is checked to respect a resource constraint. 
+
+		schedQueue : initial queue containing all resource constrained operations
+
+		budget : maximum allowed number of iterations
+
+		ILP : ILP object which contains sdcSolution
+
+		sdcSolution : solution of previous SDC run
+
+		II : II used for sdcSolution
+
+		operations_solved : list of operations for which clock time has been decided
+
+		constraint_list : list of new constraints added and to remove in case of failure
+
+		MRT <- MRT(ILP)
+		operations_solved <- []
+		constraint_list <- []
+		while schedQueue not empty and budget >= 0 then
+			operation <- pop schedQueue
+			sv_operation <- ILP.get_operation_timing_solution(operation)
+			if is_MRT_legal(MRT, operation, sv_operation) then
+				constraint_id <- constraints.add(operation_time = sv_operation)
+				constraint_list.append(constraint_id)
+				MRT.generate(ILP)
+				operations_solved.append(operation)
+			else
+				constraint_id <- constraints.add(operation_time >= sv_operation + 1)
+				constraint_list.append(constraint_id)
+				status = ilp.solve()
+				if status is feasible then
+					schedQueue <- push schedQueue operation
+				else
+					ilp.remove_constraints(constraint_list)
+					return Fail
+			budget <- budget - 1
+		if schedQueue not empty then
+			return Fail
+		else
+			return Success
+
+		'''
+
+		mrt = MRT(self.ilp) # generate the first MRT for a given ILP solution
+		constraint_list = []
+		topological_order = get_topological_order(self.cdfg) # the topological_order is chosen as order of selection of resources
+		for resource_type, max_instances in self.resource_dic.items(): # multiple resource constrained can be specified
+			# generating the list of operations of a specific resource constrained type
+			schedQueue = [ n for n in topological_order if self.cdfg.get_node(n).attr['type'] == resource_type] 
+			budget_res = budget
+			operations_solved = []
+			while len(schedQueue) > 0 and budget_res >= 0:
+				operation = schedQueue.pop()
+				sv_operation = self.ilp.get_operation_timing_solution(operation) # for the selected operation check the timing value according to SDC
+				# check if for this clock and for the operations considered until now the resource constrained is respected
+				if mrt.is_legal(operation, sv_operation, max_instances ,operations_solved):
+					# the resource constraint is respected and the operation is enforced to a specific clock cycle
+					c_id = self.constraint_set.add_constraint({f'sv{operation}':1},"eq",sv_operation)
+					constraint_list.append(c_id)
+					operations_solved.append(operation)
+					self.log.debug("Operation {operation} has been set in clock {sv_operation}")
+				else:
+					# the resource constraint is not respected and the operation is pushed of a new clock 
+					c_id = self.constraint_set.add_constraint({f'sv{operation}':1},"geq", (sv_operation+1) )
+					constraint_list.append(c_id)
+					status = self.ilp.solve_ilp()
+					if status == 1: # the SDC is feasible
+						# the operation is gonna be analyzed for the following clock cycle
+						schedQueue.append(operation)
+						mrt.generate(self.ilp)
+					else:
+						# the SDC is unfeasible (it could be because of datapath constraints or II constraints)
+						for c_id in constraint_list:
+							self.constraint_set.remove_constraint(c_id)
+						return -1 # fail
+				budget_res -= 1
+			if len(schedQueue) > 0:
+				return -1 # fail
+			else:
+				return 1 # success

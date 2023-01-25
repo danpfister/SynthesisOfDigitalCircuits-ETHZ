@@ -191,8 +191,13 @@ class Constraint_Set:
 #				- set_optimization_function : set the optimization function
 #				- update_model : update the model with a constraint set and an optimization function
 #				- solve_ilp	: solve the ILP formulation
+#				- reset_model : reset the ILP model
 #				- print_ilp : print the ILP formulation
 #				- get_ilp_solution : get ILP solution
+#				- get_II_solution : get the II of the solution
+#				- get_max_latency_solution : get the maximum latency of the solution
+#				- get_variables_solution : get the list of variables happening in a specific clock
+#				- get_operation_timing_solution : get the timing chosen from operation
 ############################################################################################################################################
 ############################################################################################################################################
 
@@ -279,12 +284,20 @@ class ILP:
 
 	# function to solve the ILP formulation
 	def solve_ilp(self):
+		self.reset_model()
 		self.model = self.update_model(self.model, self.constraints, self.opt_function)
 		solver = ilp.getSolver(self.get_solver(), msg=0) # msg=0 enforces no output of the ILP solver
 		self.status = self.model.solve(solver)
 		if(self.status != 1):
 			self.log.warning("ILP problem cannot be solved (Status {0})\t['-1': infeasible, '-2': unbounded, '-3': undefined]".format(self.status))
 		return self.status
+
+	# function to reset the ILP model
+	def reset_model(self):
+		if self.model_minimize:
+			self.model = ilp.LpProblem(self.model_name, ilp.LpMinimize)
+		else:
+			self.model = ilp.LpProblem(self.model_name, ilp.LpMaximize)
 
 	# function to print the ILP formulation
 	def print_ilp(self, output_file="output.lp"):
@@ -303,3 +316,35 @@ class ILP:
 		for var_name in self.variables:
 			result[var_name] = self.variables[var_name].varValue
 		return result
+
+	# function to get ILP solution II
+	def get_II_solution(self):
+		assert self.status != None and self.status == 1, "The function `solve_ilp` has to be called before using `get_ilp_solution` and its result has to be valid" # check that the ILP solution is valid
+		assert "II" in self.variables, "II should be initiated as a variable in the ILP"
+		return self.variables["II"].varValue
+
+	# function to get ILP solution max_latency
+	def get_max_latency_solution(self):
+		assert self.status != None and self.status == 1, "The function `solve_ilp` has to be called before using `get_ilp_solution` and its result has to be valid" # check that the ILP solution is valid
+		max_latency = -1
+		for var_name in self.variables:
+			if var_name != "II" and self.variables[var_name].varValue > max_latency:
+				max_latency = self.variables[var_name].varValue
+		assert max_latency != -1 , "Max latency should not be null"
+		return max_latency
+
+	# function to get ILP solution variables whose value is equal to a certain value 
+	def get_variables_solution(self, clock):
+		assert self.status != None and self.status == 1, "The function `solve_ilp` has to be called before using `get_ilp_solution` and its result has to be valid" # check that the ILP solution is valid
+		result = []
+		for var_name in self.variables:
+			if var_name != "II" and self.variables[var_name].varValue == clock:
+				result.append(var_name.replace("sv",""))
+		return result
+
+	# function to get ILP solution of the timing of an operation
+	def get_operation_timing_solution(self, operation):
+		assert self.status != None and self.status == 1, "The function `solve_ilp` has to be called before using `get_ilp_solution` and its result has to be valid" # check that the ILP solution is valid
+		var_name = f'sv{operation}'
+		assert var_name in self.variables, "{var_name} should be initiated as a variable in the ILP"
+		return self.variables[var_name].varValue
