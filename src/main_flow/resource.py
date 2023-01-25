@@ -98,7 +98,7 @@ class MRT: # Modulo Reservation Table (MRT)
 ############################################################################################################################################
 ############################################################################################################################################
 
-allowed_resources = ["load", "add", "mul", "div"]
+allowed_resources = ["load", "add", "mul", "div", "zext"]
 
 class Resources:
 	def __init__(self, parser, resource_dic=None, log=None):
@@ -295,13 +295,18 @@ class Resources:
 		mrt = MRT(self.ilp) # generate the first MRT for a given ILP solution
 		constraint_list = []
 		topological_order = get_topological_order(self.cdfg) # the topological_order is chosen as order of selection of resources
+		sdc_solution_order = []
+		for clock in range(int(self.ilp.get_max_latency_solution())):
+			sdc_solution_order.extend(self.ilp.get_variables_solution(float(clock)))
 		for resource_type, max_instances in self.resource_dic.items(): # multiple resource constrained can be specified
 			# generating the list of operations of a specific resource constrained type
 			schedQueue = [ n for n in topological_order if self.cdfg.get_node(n).attr['type'] == resource_type] 
 			budget_res = budget
 			operations_solved = []
+			maximum_latency = self.ilp.get_max_latency_solution()
 			while len(schedQueue) > 0 and budget_res >= 0:
-				operation = schedQueue.pop()
+				operation = schedQueue[0]
+				schedQueue.remove(operation)
 				sv_operation = self.ilp.get_operation_timing_solution(operation) # for the selected operation check the timing value according to SDC
 				# check if for this clock and for the operations considered until now the resource constrained is respected
 				if mrt.is_legal(operation, sv_operation, max_instances ,operations_solved):
@@ -311,13 +316,17 @@ class Resources:
 					operations_solved.append(operation)
 					self.log.debug("Operation {operation} has been set in clock {sv_operation}")
 				else:
+					if (sv_operation+1) > maximum_latency: # if the operation has been pushed too forward over the maximum latency
+						for c_id in constraint_list: # then the constraints added are removed
+							self.constraint_set.remove_constraint(c_id)
+						return -1 # fail since the given II cannot accomplish the result wanted
 					# the resource constraint is not respected and the operation is pushed of a new clock 
 					c_id = self.constraint_set.add_constraint({f'sv{operation}':1},"geq", (sv_operation+1) )
 					constraint_list.append(c_id)
 					status = self.ilp.solve_ilp()
 					if status == 1: # the SDC is feasible
 						# the operation is gonna be analyzed for the following clock cycle
-						schedQueue.append(operation)
+						schedQueue.insert(0, operation)
 						mrt.generate(self.ilp)
 					else:
 						# the SDC is unfeasible (it could be because of datapath constraints or II constraints)

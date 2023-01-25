@@ -3,7 +3,7 @@
 int test_initiation_interval_1 (int a[], int b[], int c[]) {
 	int acc = 0;
 	for (int i = 0; i < 100; ++i) {
-		acc += ( (a[i] % 2) * (b[i] % 3) + (c[i] % 3) );
+		acc += ( (a[i] % 2) * (b[i] % 3) + (c[i] % 3) * (b[i] % 5) + (a[i] % 7) );
 	}
 	return acc;
 }
