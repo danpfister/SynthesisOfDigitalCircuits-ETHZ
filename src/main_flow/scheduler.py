@@ -63,6 +63,7 @@ class Scheduler:
 		self.parser = parser
 		self.cdfg = parser.get_cdfg()
 		self.cfg = parser.get_cfg()
+		self.add_artificial_nodes() # adding supersource and supersinks to the cdfg
 		self.set_sched_technique(sched_technique)
 		self.sched_sol = None
 		self.II = None
@@ -287,3 +288,82 @@ class Scheduler:
 		if file_path != None:
 			plt.savefig(file_path)
 		plt.show()
+
+	# SOLUTION
+	# add supersource and supersink nodes to each BB
+	def add_artificial_nodes(self):
+		# leaf nodes: all the exiting nodes of BBs
+		leaf_nodes = []
+		ssink_found = False # boolean to verify the presence of a super sink 
+		for node in get_cdfg_nodes(self.cdfg):
+			# get all edges that are not back edges
+			out_edges = [ edge for edge in get_dag_edges(self.cdfg) if str(edge[0]) == str(node)]
+
+			# if node has no predecessors, then for sure we connect it to supersource
+			if out_edges == [] and not('ssink_' in node):
+				leaf_nodes.append(node)
+			# if node has predecessors from a different BB, then we connect it to a supersource
+			else:
+				is_leaf = True
+				for edge in out_edges:
+					id_pred = self.cdfg.get_node(edge[0]).attr['id'] # BBid of the edge's src
+					id_succ = self.cdfg.get_node(edge[1]).attr['id'] # BBid of the edge's dst
+					if id_pred == id_succ and not(edge in get_back_edges(self.cdfg)): # if src and dst have same BBid and the edge is not a back-edge, the src node is not a leaf
+						is_leaf = False
+						break
+				if is_leaf and 'ssink_' in node: # if the found leaf corresponds to a super sink the super nodes might have been already added
+					ssink_found = True
+					continue
+				if is_leaf:
+					leaf_nodes.append(node)
+		self.log.debug(f'List of leaf nodes: {leaf_nodes}')
+		# root_nodes: all the entering nodes of BBs
+		root_nodes = [] # root nodes: all the dfg nodes that have no predecessors in the same BB
+		ssrc_found = False # boolean to verify the presence of a super src
+		for node in get_cdfg_nodes(self.cdfg):
+			in_edges = [ edge for edge in get_dag_edges(self.cdfg) if str(edge[1]) == str(node)]
+
+			# if node has no successors, then for sure we connect it to a supersink
+			if in_edges == [] and not('ssrc_' in node):
+				root_nodes.append(node)
+			# if node has successors from a different BB, then we connect it to a supersink
+			else:
+				is_root = True
+				for edge in in_edges:
+					id_pred = self.cdfg.get_node(edge[0]).attr['id']
+					id_succ = self.cdfg.get_node(edge[1]).attr['id']
+					if id_pred == id_succ and not(edge in get_back_edges(self.cdfg)): # if src and dst have same BBid and the edge is not a back-edge, the dst node is not a root
+						is_root = False
+						break
+				if is_root and 'ssrc_' in node: # if the found root corresponds to a super src the super nodes might have been already added
+					ssrc_found = True
+					continue
+				if is_root:
+					root_nodes.append(node)
+		self.log.debug(f'List of root nodes: {root_nodes}')
+
+		if root_nodes == [] and leaf_nodes == [] and ssink_found and ssrc_found: # if the leaf and root nodes have been already added there is no new supersink and supernode to add
+			return
+
+		# connect the root nodes and the leaf nodes to supernodes
+		for bb in get_cdfg_nodes(self.cfg):
+			id_ = bb.attr['id']
+			bbID = bb.attr['bbID']
+			self.cdfg.add_node(f'ssrc_{id_}',id=id_, bbID=bbID, type='supersource',style='dashed',label=f'ssrc BB{id_}')
+			# connect the super source node to the entering nodes of each BB, that is not a constant (which we have already removed)
+			for n in root_nodes: 
+				if n.attr['id'] == id_:
+					self.cdfg.add_edge(f'ssrc_{id_}', n)
+			self.cdfg.add_node(f'ssink_{id_}', id=id_, bbID=bbID, type = 'supersink', style = 'dashed', label = f'ssink BB{id_}')
+			# connect the super sink node to the exiting nodes of each BB 
+			for n in leaf_nodes: 
+				if n.attr['id'] == id_:
+					self.cdfg.add_edge(n, f'ssink_{id_}')
+			if self.cdfg.out_edges(f'ssrc_{id_}') == []: # if a bb is empty, add an edge from the supersource to the supersink
+				self.cdfg.add_edge(f'ssrc_{id_}', f'ssink_{id_}')
+
+		# establish connections between supersource and supersink according to control-flow graph
+		for n, v in map(lambda e : (self.cfg.get_node(e[0]), self.cfg.get_node(e[1])), get_cdfg_edges(self.cfg)):
+			if int(n.attr['id']) < int(v.attr['id']): # TODO: handle the backedges as well
+				self.cdfg.add_edge(f'ssink_{n.attr["id"]}', f'ssrc_{v.attr["id"]}') # add sequential dependency between BBs
+		self.cdfg.draw("test_supernodes.pdf", prog="dot")

@@ -83,7 +83,7 @@ def get_topological_order(cdfg):
 	def visit(node):
 		if node in node_list:
 			return
-		assert node not in temp_list, 'error - the CDFG graph still has at least one cycle!'
+		assert node not in temp_list, 'error - the CDFG graph should not contain not dashed loop back edges!'
 		temp_list.append(node)
 		for e in get_cdfg_edges(cdfg):
 			# skip to visit the dashed edges: they are for sure cyclic
