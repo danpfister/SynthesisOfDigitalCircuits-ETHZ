@@ -36,21 +36,22 @@ def sqrt(n):
 ############################################################################################################################################
 #	FUNCTIONS:
 #					- set_sched_technique : set scheduling technique
-#					- set_data_dependency_constraints: add data dependency constraints to the constraints
-#					- set_II_constraints: add II constraints to the constraints
+#					- add_artificial_nodes : create super nodes
+#					- set_data_dependency_constraints: setting the data dependency constraints
+#					- set_II_constraints: setting the initialization interval to the value II_value
 #					- add_max_latency_constraint : add max_latency constraint and optimization
-#					- add_sink_delays_constraints : add sink delays constraints for alap (sink_delays should be a dictionary)
-#					- set_opt_function: set optimization function according to the self.sched_tech
+#					- add_sink_delays_constraints : add sink delays constraints
+#					- set_opt_function: setting the optimiztion function, according to the optimization option
 #					- create_scheduling_ilp : create the ILP of the scheduling
-#					- solve_scheduling_ilp: run the solver on top of the constrants from set_*_constraints and the objective function from set_opt_function
+#					- solve_scheduling_ilp: solve the ilp and obtain scheduling
 #					- get_ilp_tuple : get ilp, constraints and optimization function
-#					- get_sink_delays: get delays of sinks after computing solution (used by ALAP)
+#					- get_sink_delays: get delays of sinks after computing solution
 #					- print_gantt_chart : prints the gantt chart of a scheduling solution
 ############################################################################################################################################
 ############################################################################################################################################
 
 
-scheduling_techniques = ["no_pipeline", "asap", "alap", "pipelined"]
+scheduling_techniques = ["asap", "alap", "pipelined"]
 
 class Scheduler:
 
@@ -73,15 +74,9 @@ class Scheduler:
 		self.constraints = Constraint_Set(self.ilp, log=log)
 		self.opt_fun = Opt_Function(self.ilp, log=log)
 
-		# remove all branch nodes, they force the II to be the same as iteration latency
-		#self.cdfg.remove_nodes_from([ n for n in get_cdfg_nodes(self.cdfg) if n.attr['type'] == 'br' ]) 
-
-		# remove all constant nodes
-		#self.cdfg.remove_nodes_from([ n for n in get_cdfg_nodes(self.cdfg) if n.attr['type'] == 'constant' ]) 
-
-		# add one ilp variable per each node
-		for n in get_cdfg_nodes(self.cdfg): # create a scheduling variable (sv) per each CDFG node
-			self.ilp.add_variable(f'sv{n}', lower_bound = 0,  var_type="i")
+		# define ilp variable per each node
+		# TODO: write your code here
+		pass
 
 	# function to set scheduling technique
 	def set_sched_technique(self, technique):
@@ -89,110 +84,69 @@ class Scheduler:
 		self.log.info(f'Setting the scheduling technique to be "{technique}"')
 		self.sched_tech = technique
 
-	# function for setting the data dependency constraint between two nodes
+	# function for setting the data dependency constraints
 	def set_data_dependency_constraints(self, break_bb_connections=False):
-		'''
-		if there is a forward dependency between node src and dst
-
-		src -----> dst
-
-		then we say the finishing time of sv_src must be eariler than the starting time of sv_dst
-		sv_src + latency_src <= sv_dst
-
-		'''
-		for edge in get_cdfg_edges(self.cdfg): # Dependency constraint: per each edge
-			if edge.attr['style'] != 'dashed':
-				src, dst = self.cdfg.get_node(edge[0]), self.cdfg.get_node(edge[1])
-				# if the break_bb_connections is set to True and the edge is between blocks of different BBs, the data dependency is ignored
-				if break_bb_connections and src.attr['id'] != dst.attr['id']: 
-					continue
-				self.log.debug(f'Adding dependency constraint {src} -> {dst}')
-				# sv_src >= sv_dst + latency; assume that the latency of each operation is 1 for now
-				self.constraints.add_constraint({f'sv{src}' : -1, f'sv{dst}' : 1}, "geq", get_node_latency(src.attr) )
+		# TODO: write your code here
+		pass
 
 
-	# function for setting the initialization interval constraint from the back edges to the value II_value
+	# function for setting the initialization interval to the value II_value
 	def set_II_constraints(self, II_value):
-		assert self.sched_tech != 'no_pipeline', 'sanity check'
-		# ===================== II Constraints ====================== #
-		'''
-		if there is a inter-iteration dependency between node n and v (which corresponds to a backedge)
-
-		n -----> v
-
-		then we say the finishing time of sv_n must be eariler than the starting time of sv_v
-		sv_n + latency_n <= sv_v + II * dist_nv
-
-		'''
-		# define one II for the external loop
-		self.ilp.add_variable(f'II', lower_bound = 1, var_type='i')
-		self.constraints.add_constraint({f'II':1}, "eq", II_value) # constraint to set II to a certain value
-
-		# cross-iteration constraint: per each backedge
-		for e in get_back_edges(self.cdfg): 
-			self.log.debug(f'Adding II constraint for backedge: {e[0]} -> {e[1]}')
-			src, dst = self.cdfg.get_node(e[0]), self.cdfg.get_node(e[1])
-			assert src.attr['bbID'] == dst.attr['bbID'], 'sanity check failed: II defined only for single BB for now'
-			# sv_src + latency_u <= sv_dst + II * Dist; if there is an back edge assume that for now the dependencies from the back edges all have dist = 1
-			# TODO: add memory dependency distance
-			self.constraints.add_constraint({ f'sv{src}' : -1, f'sv{dst}' : 1, f'II' : 1 }, "geq", get_node_latency(src.attr)) 
+		# TODO: write your code here
+		pass
 
 	# function to add max_latency constraint and optimization
 	def add_max_latency_constraint(self):
-		self.ilp.add_variable(f'max_latency', lower_bound = 0,  var_type="i")
-		self.opt_fun.add_variable(f'max_latency', 1)
+		# TODO: write your code here
+		pass
 
-		ssinks = filter(lambda n : n.attr['type'] == 'supersink', get_cdfg_nodes(self.cdfg))
-		for n in ssinks: # we try to minimize the latest SSINK
-			self.constraints.add_constraint({f'sv{n}' : -1, f'max_latency' : 1}, "geq", 0)
-
-	# function to add sink delays constraints for alap (sink_delays should be a dictionary)
+	# function to add sink delays constraints
 	def add_sink_delays_constraints(self, sink_delays):
-		for sink in sink_delays:
-			if not(sink in get_cdfg_nodes(self.cdfg)):
-				self.log.error("The sink node {} does not belong to the cdfg".format(sink))
-				continue
-			self.constraints.add_constraint({"sv{}".format(sink) : 1}, "leq", sink_delays[sink])
+		# TODO: write your code here
+		pass
 
-	# function for setting the optimiztion funciton, according to the optimization option
+	# function for setting the optimiztion function, according to the optimization option
 	def set_opt_function(self):
-		if self.sched_tech == 'no_pipeline':
-			# ======================== Latency Minimization Objective ==========================#
-			# objective: minimize the end-to-end latency
-			self.add_max_latency_constraint()
-		elif self.sched_tech == 'asap':
-			# ======================== Latency Minimization per node Objective ==========================#
-			# objective: minimize the end-to-end latency
-
-			for n in get_cdfg_nodes(self.cdfg): # we try to minimize all nodes delays
-				self.opt_fun.add_variable(f'sv{n}', 1)
+		if self.sched_tech == 'asap':
+			# TODO: write your code here
+			pass
 		elif self.sched_tech == 'alap':
-			# ======================== Latency Maximization per node Objective ==========================#
-			# objective: minimize the end-to-end latency
-		
-			for n in get_cdfg_nodes(self.cdfg): # we try to minimize all nodes delays
-				self.opt_fun.add_variable(f'sv{n}', -1)
+			# TODO: write your code here
+			pass
 		elif self.sched_tech == 'pipelined':
-			# ======================== II Minimization Objective ===============================#
-			for n in get_cdfg_nodes(self.cdfg): # we try to minimize all nodes delays
-				self.opt_fun.add_variable(f'sv{n}', 1)
-			# II minimization happens in the set_II_constraints function
+			# TODO: write your code here
+			pass
 		else:
 			self.log.error(f'Not implemented option! {self.sched_tech}')
 			raise NotImplementedError
 
-	# function to create the ILP of the scheduling # sink delays corresponds to minimum delay of super_sinks using asap
+	# function to create the ILP of the scheduling
 	def create_scheduling_ilp(self, sink_delays=None):
-		if self.sched_tech == "no_pipeline":
-			self.set_data_dependency_constraints()
-		elif self.sched_tech == "asap" or self.sched_tech == "alap":
-			self.set_data_dependency_constraints(break_bb_connections=True)
-			if self.sched_tech == "alap":
-				assert sink_delays!= None and sink_delays != [], "ALAP scheduling needs the specification of sink delays as maximum allowed delay"
-				self.add_sink_delays_constraints(sink_delays)
+		if self.sched_tech == "asap":
+			# TODO: write your code here
+			pass
+		elif self.sched_tech == "alap":
+			# TODO: write your code here
+			pass
 		elif self.sched_tech == "pipelined":
-			self.set_data_dependency_constraints(break_bb_connections=True)
+			# TODO: write your code here
+			pass
 		self.set_opt_function()
+
+	# function to get ilp, constraints and optimization function
+	def get_ilp_tuple(self):
+		# TODO: write your code here
+		pass
+
+	# function to get delays of sinks after computing solution
+	def get_sink_delays(self):
+		# TODO: write your code here
+		pass
+
+	# function to create super nodes
+	def add_artificial_nodes(self):
+		# TODO: write your code here
+		pass
 
 	# function to solve the ilp and obtain scheduling
 	def solve_scheduling_ilp(self, base_path, example_name):
@@ -221,20 +175,6 @@ class Scheduler:
 			self.log.info(f'The maximum II for this cdfg is {self.ilp.get_ilp_solution()["max_II"]}')
 			self.II = self.ilp.get_ilp_solution()["max_II"]
 		return res
-
-	# function to get ilp, constraints and optimization function
-	def get_ilp_tuple(self):
-		return self.ilp, self.constraints, self.opt_fun
-
-	# function to get delays of sinks after computing solution (used by ALAP)
-	def get_sink_delays(self):
-		assert self.sched_sol != None, "You need to run the solution before retrieving sink delays"
-		output = {}
-		for var, value in self.ilp.get_ilp_solution().items():
-			# check if the node contains svssink word
-			if re.search(r'^svssink', var):
-				output[var.replace("sv","")] = value
-		return output
 
 	# function to get the gantt chart of a scheduling 
 	def print_gantt_chart(self, chart_title="Untitled", file_path=None):
@@ -280,90 +220,11 @@ class Scheduler:
 			axs[axs_id].grid()
 			axs[axs_id].set_xticks([i for i in range(int(latest_tick[bb_id])+1)])
 			axs[axs_id].title.set_text("BB {}".format(bb_id))
-			if self.II != None: # adding II information on the plot
-				axs[axs_id].hlines(y=-1, xmin=0, xmax=self.II, color='r', linestyle = '-')
-				axs[axs_id].text(self.II/2-0.35, -2, "II = {0}".format(int(self.II)), color='r')
+			#if self.II != None: # adding II information on the plot
+			#	axs[axs_id].hlines(y=-1, xmin=0, xmax=self.II, color='r', linestyle = '-')
+			#	axs[axs_id].text(self.II/2-0.35, -2, "II = {0}".format(int(self.II)), color='r')
 			axs_id += 1
 		#plt.title(chart_title)
 		if file_path != None:
 			plt.savefig(file_path)
 		plt.show()
-
-	# SOLUTION
-	# add supersource and supersink nodes to each BB
-	def add_artificial_nodes(self):
-		# leaf nodes: all the exiting nodes of BBs
-		leaf_nodes = []
-		ssink_found = False # boolean to verify the presence of a super sink 
-		for node in get_cdfg_nodes(self.cdfg):
-			# get all edges that are not back edges
-			out_edges = [ edge for edge in get_dag_edges(self.cdfg) if str(edge[0]) == str(node)]
-
-			# if node has no predecessors, then for sure we connect it to supersource
-			if out_edges == [] and not('ssink_' in node):
-				leaf_nodes.append(node)
-			# if node has predecessors from a different BB, then we connect it to a supersource
-			else:
-				is_leaf = True
-				for edge in out_edges:
-					id_pred = self.cdfg.get_node(edge[0]).attr['id'] # BBid of the edge's src
-					id_succ = self.cdfg.get_node(edge[1]).attr['id'] # BBid of the edge's dst
-					if id_pred == id_succ and not(edge in get_back_edges(self.cdfg)): # if src and dst have same BBid and the edge is not a back-edge, the src node is not a leaf
-						is_leaf = False
-						break
-				if is_leaf and 'ssink_' in node: # if the found leaf corresponds to a super sink the super nodes might have been already added
-					ssink_found = True
-					continue
-				if is_leaf:
-					leaf_nodes.append(node)
-		self.log.debug(f'List of leaf nodes: {leaf_nodes}')
-		# root_nodes: all the entering nodes of BBs
-		root_nodes = [] # root nodes: all the dfg nodes that have no predecessors in the same BB
-		ssrc_found = False # boolean to verify the presence of a super src
-		for node in get_cdfg_nodes(self.cdfg):
-			in_edges = [ edge for edge in get_dag_edges(self.cdfg) if str(edge[1]) == str(node)]
-
-			# if node has no successors, then for sure we connect it to a supersink
-			if in_edges == [] and not('ssrc_' in node):
-				root_nodes.append(node)
-			# if node has successors from a different BB, then we connect it to a supersink
-			else:
-				is_root = True
-				for edge in in_edges:
-					id_pred = self.cdfg.get_node(edge[0]).attr['id']
-					id_succ = self.cdfg.get_node(edge[1]).attr['id']
-					if id_pred == id_succ and not(edge in get_back_edges(self.cdfg)): # if src and dst have same BBid and the edge is not a back-edge, the dst node is not a root
-						is_root = False
-						break
-				if is_root and 'ssrc_' in node: # if the found root corresponds to a super src the super nodes might have been already added
-					ssrc_found = True
-					continue
-				if is_root:
-					root_nodes.append(node)
-		self.log.debug(f'List of root nodes: {root_nodes}')
-
-		if root_nodes == [] and leaf_nodes == [] and ssink_found and ssrc_found: # if the leaf and root nodes have been already added there is no new supersink and supernode to add
-			return
-
-		# connect the root nodes and the leaf nodes to supernodes
-		for bb in get_cdfg_nodes(self.cfg):
-			id_ = bb.attr['id']
-			bbID = bb.attr['bbID']
-			self.cdfg.add_node(f'ssrc_{id_}',id=id_, bbID=bbID, type='supersource',style='dashed',label=f'ssrc BB{id_}')
-			# connect the super source node to the entering nodes of each BB, that is not a constant (which we have already removed)
-			for n in root_nodes: 
-				if n.attr['id'] == id_:
-					self.cdfg.add_edge(f'ssrc_{id_}', n)
-			self.cdfg.add_node(f'ssink_{id_}', id=id_, bbID=bbID, type = 'supersink', style = 'dashed', label = f'ssink BB{id_}')
-			# connect the super sink node to the exiting nodes of each BB 
-			for n in leaf_nodes: 
-				if n.attr['id'] == id_:
-					self.cdfg.add_edge(n, f'ssink_{id_}')
-			if self.cdfg.out_edges(f'ssrc_{id_}') == []: # if a bb is empty, add an edge from the supersource to the supersink
-				self.cdfg.add_edge(f'ssrc_{id_}', f'ssink_{id_}')
-
-		# establish connections between supersource and supersink according to control-flow graph
-		for n, v in map(lambda e : (self.cfg.get_node(e[0]), self.cfg.get_node(e[1])), get_cdfg_edges(self.cfg)):
-			if int(n.attr['id']) < int(v.attr['id']): # TODO: handle the backedges as well
-				self.cdfg.add_edge(f'ssink_{n.attr["id"]}', f'ssrc_{v.attr["id"]}') # add sequential dependency between BBs
-		self.cdfg.draw("test_supernodes.pdf", prog="dot")
