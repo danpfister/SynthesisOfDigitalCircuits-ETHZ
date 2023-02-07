@@ -252,7 +252,7 @@ class Parser():
 				cdfg.add_edge(f'{input_}', f'{result}')
 				self.log.debug("Added variable node {0} and edge {0} -> {1}".format(input_, result))
 			for cst_id_, input_ in enumerate(constants): # add a node for each input constant and the edge connecting it to result, each constant should have an unique identifier to distinguish
-				cdfg.add_node(f'cst_{result}_{cst_id_}', id = self.dic_bbID[bbID], bbID = bbID,  type='constant', label=f'{input_}', value=f'{cst_id_}') # TODO: maybe we don't need the bitwidth for constant nodes, even for functional correctness reasons
+				cdfg.add_node(f'cst_{result}_{cst_id_}', id = self.dic_bbID[bbID], bbID = bbID,  type='constant', label=f'{input_}', value=f'{cst_id_}') 
 				cdfg.add_edge(f'cst_{result}_{cst_id_}', f'{result}')
 				self.log.debug("Added constant node {0} and edge {0} -> {1}".format(input_, result))
 
