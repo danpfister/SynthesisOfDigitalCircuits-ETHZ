@@ -268,7 +268,7 @@ class Scheduler:
 					latest_tick[bb_id] = tmp_tick
 		graphs_per_row = sqrt(len(variables))
 		#fig, axs = plt.subplots(int(len(variables)))
-		fig = plt.figure()
+		fig = plt.figure(figsize=(20 * 1.5, 11.25 * 1.5), layout='constrained')
 		axs=[]
 		subplot_format = (graphs_per_row * 110) + 1
 
