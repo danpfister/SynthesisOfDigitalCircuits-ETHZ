@@ -11,5 +11,4 @@ a.out
 *.jpg
 *.jpeg
 *.pdf
-reports/
 __pycache__/
