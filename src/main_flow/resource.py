@@ -180,7 +180,8 @@ class Resources:
 					'''
 					self.log.debug(f'resource constraint between {resource_node_x} and {resource_node_y}')
 					# (4): add constraint
-					self.constraint_set.add_constraint({f'sv{resource_node_x}' : -1, f'sv{resource_node_y}' : 1}, "geq", get_node_latency(resource_node_x.attr) )
+					#self.constraint_set.add_constraint({f'sv{resource_node_x}' : -1, f'sv{resource_node_y}' : 1}, "geq", get_node_latency(resource_node_x.attr) )
+					self.constraint_set.add_constraint({f'sv{resource_node_x}' : -1, f'sv{resource_node_y}' : 1}, "geq", 1)
 
 	# function for setting up the maximum resource usage per res type in the constraint set (following De Micheli approach)
 	def add_resource_constraints_deMicheli(self, ilp, constraints, opt_function, sink_delays):

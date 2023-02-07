@@ -61,16 +61,19 @@ def main(args):
 		scheduler.create_scheduling_ilp()
 		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		sink_delays = scheduler.get_sink_delays()
+		chart_title = "{0} - {1}".format(scheduling_type, example_name)
+		#scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
+
 
 		###################### ALAP ######################
-		'''
+		
 		scheduling_type = "alap"
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp(sink_delays)
 		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
-		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
-		'''
+		#scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
+		
 
 		###################### ASAP with RESOURCE CONSTRAINTS deMicheli ######################
 		'''
@@ -87,51 +90,53 @@ def main(args):
 		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_resource_ADD_1.pdf".format(base_path, example_name, scheduling_type))
 		'''
 
-		###################### ASAP with RESOURCE CONSTRAINTS deMicheli ######################
-		'''
+		###################### ASAP with RESOURCE CONSTRAINTS sdc ######################
+		
 		scheduling_type = "asap"
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
 		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
-		resource_manager = Resources(ssa_parser, { 'add' : 1 }, log=log)
+		resource_manager = Resources(ssa_parser, { 'add' : 1 , 'mul' : 1}, log=log)
 		resource_manager.add_resource_constraints_sdc(ilp, constraints, opt_function)
 		status = scheduler.solve_scheduling_ilp(base_path, example_name)
+		sink_delays = scheduler.get_sink_delays() # sink delays for the alap resource constrained might increase
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
-		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_resource_ADD_1.pdf".format(base_path, example_name, scheduling_type))
-		'''
+		#scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_resource_ADD_1_MUL_1.pdf".format(base_path, example_name, scheduling_type))
+		
 
-		###################### ALAP with RESOURCE CONSTRAINTS ######################
-		'''
+		###################### ALAP with RESOURCE CONSTRAINTS sdc ######################
+		
 		scheduling_type = "alap"
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp(sink_delays)
 		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
-		resource_manager = Resources(ssa_parser, { 'add' : 1 }, log=log)
+		resource_manager = Resources(ssa_parser, { 'add' : 1 , 'mul' : 1}, log=log)
 		resource_manager.add_resource_constraints_sdc(ilp, constraints, opt_function)
 		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
-		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
-		'''
+		#scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_resource_ADD_1_MUL_1.pdf".format(base_path, example_name, scheduling_type) )
+		
 
 		###################### ASAP pipelined ######################
 
-		'''
+		
 		scheduling_type = "pipelined"
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
 		scheduler.set_II_constraints(3)
 		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
-		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_asap_pipelined.pdf".format(base_path, example_name, scheduling_type))
-		'''
+		#scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_asap_pipelined.pdf".format(base_path, example_name, scheduling_type))
+		
 
 		###################### ASAP pipelined resource constrained ######################
 
+		
 		scheduling_type = "pipelined"
 		chart_title = "{0} - {1}".format(scheduling_type, example_name)
 		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
 		scheduler.create_scheduling_ilp()
-		scheduler.set_II_constraints(3)
+		scheduler.set_II_constraints(4)
 		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
 		resource_manager = Resources(ssa_parser, { 'zext' : 1 }, log=log)
 		resource_manager.add_resource_constraints_sdc(ilp, constraints, opt_function)
@@ -140,7 +145,7 @@ def main(args):
 		status_res = resource_manager.add_resource_constraints_pipelined(ilp, constraints, opt_function, budget_iterations)
 		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_asap_pipelined_res_constrained.pdf".format(base_path, example_name, scheduling_type))
-
+		
 
 
 	if frontend_only:
