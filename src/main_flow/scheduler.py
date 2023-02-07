@@ -105,6 +105,21 @@ class Scheduler:
 		# TODO: write your code here
 		pass
 
+		# function to get ilp, constraints and optimization function
+	def get_ilp_tuple(self):
+		# TODO: write your code here
+		pass
+
+	# function to get delays of sinks after computing solution
+	def get_sink_delays(self):
+		# TODO: write your code here
+		pass
+
+	# function to create super nodes
+	def add_artificial_nodes(self):
+		# TODO: write your code here
+		pass
+
 	# function for setting the optimiztion function, according to the optimization option
 	def set_opt_function(self):
 		if self.sched_tech == 'asap':
@@ -133,20 +148,7 @@ class Scheduler:
 			pass
 		self.set_opt_function()
 
-	# function to get ilp, constraints and optimization function
-	def get_ilp_tuple(self):
-		# TODO: write your code here
-		pass
-
-	# function to get delays of sinks after computing solution
-	def get_sink_delays(self):
-		# TODO: write your code here
-		pass
-
-	# function to create super nodes
-	def add_artificial_nodes(self):
-		# TODO: write your code here
-		pass
+#### DO NOT TOUCH FROM THIS LINE ####
 
 	# function to solve the ilp and obtain scheduling
 	def solve_scheduling_ilp(self, base_path, example_name):
