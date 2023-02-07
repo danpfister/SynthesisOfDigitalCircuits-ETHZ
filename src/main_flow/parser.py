@@ -276,6 +276,26 @@ class Parser():
 			if self.is_backedge(e[0], e[1]):
 				e.attr['style'] = 'dashed'
 
+	#function to draw cdfg function representation of the ssa input file
+	def draw_cdfg(self, output_file = 'test.pdf', layout = 'dot'):
+		assert(not(self.cdfg is None))
+		self.cdfg.draw(output_file, prog=layout) # drawing cdfg in the .pdf file
+		self.cdfg.write(output_file.replace('.pdf', '.dot')) # describing cdfg in dot file
+		self.log.info("Printed cdfg in file {0} with layout {1}. Its dot representation is in file {2}".format(output_file, layout, output_file.replace('.pdf','.dot')))
+		cfg_filename = output_file.replace('.pdf', '.cfg.pdf') 
+		self.cfg.draw(cfg_filename, prog=layout) # drawing cfg in the .pdf file
+		self.cfg.write(cfg_filename.replace('.pdf', '.dot')) # describing cfg in dot file
+		self.log.info("Printed cfg in file {0} with layout {1}. Its dot representation is in file {2}".format(cfg_filename, layout, cfg_filename.replace('.pdf','.dot')))
+
+	#function to get cdfg
+	def get_cdfg(self):
+		return self.cdfg
+
+	#function to get cfg
+	def get_cfg(self):
+		return self.cfg
+
+	# SOLUTION
 	# add supersource and supersink nodes to each BB
 	def add_artificial_nodes(self):
 		# leaf nodes: all the exiting nodes of BBs
@@ -342,22 +362,3 @@ class Parser():
 			if int(n.attr['id']) < int(v.attr['id']): # TODO: handle the backedges as well
 				self.cdfg.add_edge(f'ssink_{n.attr["id"]}', f'ssrc_{v.attr["id"]}') # add sequential dependency between BBs
 		self.cdfg.draw("test_supernodes.pdf", prog="dot")
-
-	#function to draw cdfg function representation of the ssa input file
-	def draw_cdfg(self, output_file = 'test.pdf', layout = 'dot'):
-		assert(not(self.cdfg is None))
-		self.cdfg.draw(output_file, prog=layout) # drawing cdfg in the .pdf file
-		self.cdfg.write(output_file.replace('.pdf', '.dot')) # describing cdfg in dot file
-		self.log.info("Printed cdfg in file {0} with layout {1}. Its dot representation is in file {2}".format(output_file, layout, output_file.replace('.pdf','.dot')))
-		cfg_filename = output_file.replace('.pdf', '.cfg.pdf') 
-		self.cfg.draw(cfg_filename, prog=layout) # drawing cfg in the .pdf file
-		self.cfg.write(cfg_filename.replace('.pdf', '.dot')) # describing cfg in dot file
-		self.log.info("Printed cfg in file {0} with layout {1}. Its dot representation is in file {2}".format(cfg_filename, layout, cfg_filename.replace('.pdf','.dot')))
-
-	#function to get cdfg
-	def get_cdfg(self):
-		return self.cdfg
-
-	#function to get cfg
-	def get_cfg(self):
-		return self.cfg

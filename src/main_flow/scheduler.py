@@ -190,7 +190,7 @@ class Scheduler:
 				assert sink_delays!= None and sink_delays != [], "ALAP scheduling needs the specification of sink delays as maximum allowed delay"
 				self.add_sink_delays_constraints(sink_delays)
 		elif self.sched_tech == "pipelined":
-			self.set_data_dependency_constraints()
+			self.set_data_dependency_constraints(break_bb_connections=True)
 		self.set_opt_function()
 
 	# function to solve the ilp and obtain scheduling
