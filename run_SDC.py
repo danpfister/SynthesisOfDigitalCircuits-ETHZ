@@ -15,12 +15,11 @@ log.addHandler(console_handler) # add console_handler to log
 
 
 def main(args):
-	frontend_only = args.frontend
 	input_list = args.input_list
 	base_path = args.examples_folder
 	debug_mode = args.debug
 
-	log.info("Arguments selected:\n\tINPUT LIST = {0}\n\tEXAMPLE FOLDER PATH = {1}\n\tONLY FRONTEND = {2}\n\tDEBUG = {3}".format(frontend_only, base_path, input_list, debug_mode))
+	log.info("Arguments selected:\n\tINPUT LIST = {0}\n\tEXAMPLE FOLDER PATH = {1}\n\tDEBUG = {2}".format(base_path, input_list, debug_mode))
 
 	# if debug_mode is selected logger is set to debug
 	if debug_mode:
@@ -44,119 +43,36 @@ def main(args):
 		if not(ssa_parser.is_valid()):
 			log.error("Parser has encountered a problem. Please verify path correctness ({0})".format(path_ssa_example))
 			continue
-		ssa_parser.draw_cdfg("{0}/{1}/test.pdf".format(base_path, example_name))
-
-		###################### NO PIPILINE ######################  
-		'''
-		scheduling_type = "no_pipeline"
-		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
-		scheduler.create_scheduling_ilp()
-		status = scheduler.solve_scheduling_ilp(base_path, example_name)
-		sink_delays = scheduler.get_sink_delays()
-		'''
+		ssa_parser.draw_cdfg("{0}/{1}/parser_output.pdf".format(base_path, example_name))
 
 		###################### ASAP ######################
-		scheduling_type = "asap"
-		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
-		scheduler.create_scheduling_ilp()
-		status = scheduler.solve_scheduling_ilp(base_path, example_name)
-		sink_delays = scheduler.get_sink_delays()
-		chart_title = "{0} - {1}".format(scheduling_type, example_name)
-		#scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
-
+		# TODO: write your code here
+		pass
 
 		###################### ALAP ######################
-		
-		scheduling_type = "alap"
-		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
-		scheduler.create_scheduling_ilp(sink_delays)
-		status = scheduler.solve_scheduling_ilp(base_path, example_name)
-		chart_title = "{0} - {1}".format(scheduling_type, example_name)
-		#scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, scheduling_type) )
-		
+		# TODO: write your code here
+		pass
 
-		###################### ASAP with RESOURCE CONSTRAINTS deMicheli ######################
-		'''
-		scheduling_type = "asap"
-		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
-		scheduler.create_scheduling_ilp()
-		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
-		resource_manager = Resources(ssa_parser, { 'add' : 1 }, log=log)
-		for key in sink_delays:
-			sink_delays[key] = sink_delays[key] * 2
-		resource_manager.add_resource_constraints_deMicheli(ilp, constraints, opt_function, sink_delays)
-		status = scheduler.solve_scheduling_ilp(base_path, example_name)
-		chart_title = "{0} - {1}".format(scheduling_type, example_name)
-		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_resource_ADD_1.pdf".format(base_path, example_name, scheduling_type))
-		'''
+		###################### ASAP with RESOURCE CONSTRAINTS ######################
+		# TODO: write your code here
+		pass
 
-		###################### ASAP with RESOURCE CONSTRAINTS sdc ######################
-		
-		scheduling_type = "asap"
-		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
-		scheduler.create_scheduling_ilp()
-		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
-		resource_manager = Resources(ssa_parser, { 'add' : 1 , 'mul' : 1}, log=log)
-		resource_manager.add_resource_constraints_sdc(ilp, constraints, opt_function)
-		status = scheduler.solve_scheduling_ilp(base_path, example_name)
-		sink_delays = scheduler.get_sink_delays() # sink delays for the alap resource constrained might increase
-		chart_title = "{0} - {1}".format(scheduling_type, example_name)
-		#scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_resource_ADD_1_MUL_1.pdf".format(base_path, example_name, scheduling_type))
-		
-
-		###################### ALAP with RESOURCE CONSTRAINTS sdc ######################
-		
-		scheduling_type = "alap"
-		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
-		scheduler.create_scheduling_ilp(sink_delays)
-		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
-		resource_manager = Resources(ssa_parser, { 'add' : 1 , 'mul' : 1}, log=log)
-		resource_manager.add_resource_constraints_sdc(ilp, constraints, opt_function)
-		status = scheduler.solve_scheduling_ilp(base_path, example_name)
-		chart_title = "{0} - {1}".format(scheduling_type, example_name)
-		#scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_resource_ADD_1_MUL_1.pdf".format(base_path, example_name, scheduling_type) )
-		
+		###################### ALAP with RESOURCE CONSTRAINTS ######################
+		# TODO: write your code here
+		pass
 
 		###################### ASAP pipelined ######################
-
-		
-		scheduling_type = "pipelined"
-		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
-		scheduler.create_scheduling_ilp()
-		scheduler.set_II_constraints(3)
-		status = scheduler.solve_scheduling_ilp(base_path, example_name)
-		chart_title = "{0} - {1}".format(scheduling_type, example_name)
-		#scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_asap_pipelined.pdf".format(base_path, example_name, scheduling_type))
-		
+		# TODO: write your code here
+		pass
 
 		###################### ASAP pipelined resource constrained ######################
-
-		
-		scheduling_type = "pipelined"
-		chart_title = "{0} - {1}".format(scheduling_type, example_name)
-		scheduler = Scheduler(ssa_parser, scheduling_type, log=log)
-		scheduler.create_scheduling_ilp()
-		scheduler.set_II_constraints(4)
-		ilp, constraints, opt_function = scheduler.get_ilp_tuple()
-		resource_manager = Resources(ssa_parser, { 'zext' : 1 }, log=log)
-		resource_manager.add_resource_constraints_sdc(ilp, constraints, opt_function)
-		status = scheduler.solve_scheduling_ilp(base_path, example_name)
-		budget_iterations = 30
-		status_res = resource_manager.add_resource_constraints_pipelined(ilp, constraints, opt_function, budget_iterations)
-		status = scheduler.solve_scheduling_ilp(base_path, example_name)
-		scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_asap_pipelined_res_constrained.pdf".format(base_path, example_name, scheduling_type))
-		
-
-
-	if frontend_only:
-		log.info("Early execution termination\n\nBye :)")
-
+		# TODO: write your code here
+		pass
 
 if __name__ == '__main__':
 	arg_parser = argparse.ArgumentParser(description="Welcome to the SDC project for the Summer Semester 2023!")
 	arg_parser.add_argument('--input_list', type=str, help='Input filelist containing examples to run', default="filelist.lst")
 	arg_parser.add_argument('--examples_folder', type=str, help='Path of the examples folder', default="examples")
-	arg_parser.add_argument('--frontend', action='store_true' , help='Execute only frontend', default=False)
 	arg_parser.add_argument('--debug', action='store_true' , help='Set debug mode', default=False)
 
 
