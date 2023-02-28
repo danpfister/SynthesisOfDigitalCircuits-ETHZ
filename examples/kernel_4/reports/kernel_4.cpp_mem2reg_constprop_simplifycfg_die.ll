@@ -6,34 +6,34 @@ target triple = "x86_64-unknown-linux-gnu"
 ; Function Attrs: noinline nounwind uwtable
 define i32 @_Z8kernel_4iiii(i32 %a, i32 %b, i32 %c, i32 %n) #0 {
 entry:
+  br label %for.body
+
+for.body:                                         ; preds = %for.body, %entry
+  %a.addr.03 = phi i32 [ %a, %entry ], [ %rem, %for.body ]
+  %i.02 = phi i32 [ 0, %entry ], [ %inc, %for.body ]
+  %c.addr.01 = phi i32 [ %c, %entry ], [ %add11, %for.body ]
   %add = add nsw i32 %b, 50
   %add1 = add nsw i32 %n, 100
   %mul = mul nsw i32 %add, %add1
-  %add2 = add nsw i32 %c, 40
+  %add2 = add nsw i32 %c.addr.01, 40
   %mul3 = mul nsw i32 %mul, %add2
-  %add4 = add nsw i32 %a, 10
+  %add4 = add nsw i32 %a.addr.03, 10
   %mul5 = mul nsw i32 %mul3, %add4
-  %mul6 = mul nsw i32 %n, 10000
-  %cmp = icmp sgt i32 %mul5, %mul6
-  br i1 %cmp, label %if.then, label %if.else
+  %add6 = add nsw i32 %c.addr.01, %n
+  %div = sdiv i32 %mul5, %add6
+  %add7 = add nsw i32 %div, %c.addr.01
+  %rem = srem i32 %b, %add7
+  %mul8 = mul nsw i32 %rem, %n
+  %add9 = add nsw i32 %c.addr.01, %b
+  %mul10 = mul nsw i32 %add9, %b
+  %xor = xor i32 %mul8, %mul10
+  %add11 = add nsw i32 %c.addr.01, %xor
+  %inc = add nuw nsw i32 %i.02, 1
+  %cmp = icmp ult i32 %inc, 100
+  br i1 %cmp, label %for.body, label %for.end
 
-if.then:                                          ; preds = %entry
-  %add7 = add nsw i32 %n, %c
-  %div = sdiv i32 %mul5, %add7
-  br label %if.end
-
-if.else:                                          ; preds = %entry
-  %add8 = add nsw i32 %mul5, %c
-  %rem = srem i32 %b, %add8
-  br label %if.end
-
-if.end:                                           ; preds = %if.else, %if.then
-  %a.addr.0 = phi i32 [ %div, %if.then ], [ %rem, %if.else ]
-  %mul9 = mul nsw i32 %a.addr.0, %n
-  %add10 = add nsw i32 %c, %b
-  %mul11 = mul nsw i32 %add10, %b
-  %xor = xor i32 %mul9, %mul11
-  ret i32 %xor
+for.end:                                          ; preds = %for.body
+  ret i32 %add11
 }
 
 ; Function Attrs: noinline norecurse nounwind uwtable
