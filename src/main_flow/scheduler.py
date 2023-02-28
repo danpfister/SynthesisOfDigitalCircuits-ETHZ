@@ -47,6 +47,7 @@ def sqrt(n):
 #					- get_ilp_tuple : get ilp, constraints and optimization function
 #					- get_sink_delays: get delays of sinks after computing solution
 #					- print_gantt_chart : prints the gantt chart of a scheduling solution
+#					- print_scheduling_summary: it prints the start time of each node into a txt report. If the loop is pipelined, it also prints the achieved II.
 ############################################################################################################################################
 ############################################################################################################################################
 
@@ -176,7 +177,25 @@ class Scheduler:
 		elif 'max_II' in self.ilp.get_ilp_solution():
 			self.log.info(f'The maximum II for this cdfg is {self.ilp.get_ilp_solution()["max_II"]}')
 			self.II = self.ilp.get_ilp_solution()["max_II"]
+		elif 'II' in self.ilp.get_ilp_solution():
+			self.log.info(f'The II for this cdfg is {self.ilp.get_ilp_solution()["II"]}')
+			self.II = self.ilp.get_ilp_solution()["II"]
 		return res
+
+	# function to get the gantt chart of a scheduling 
+	def print_scheduling_summary(self, file_path=None):
+		assert self.sched_sol != None, "There should be a solution to an ILP before running this function"
+		with open(file_path, 'w') as f:
+			# sort the summary by BBs, print the starting time of each node
+			for id_ in range(len(self.cfg)):
+				# sort the summary by starting time of each node
+				for node in sorted(get_cdfg_nodes(self.cdfg), key=lambda n : n.attr["latency"]):
+					if int(node.attr['id']) == id_:
+						f.write(f'sv({node}) @ bb({id_}) := {node.attr["latency"]}\n')
+			if self.II != None:
+				f.write(f'II := {self.II}')
+			else:
+				f.write(f'II := N/A')
 
 	# function to get the gantt chart of a scheduling 
 	def print_gantt_chart(self, chart_title="Untitled", file_path=None):
