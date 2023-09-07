@@ -19,7 +19,7 @@ from src.utilities.cdfg_manager import *
 #
 ############################################################################################################################################
 #	DESCRIPTION:
-#					The following class is used as a parser of an IR (Intermediate Representation) of LLVM (https://llvm.org/). 
+#					The following class is used as a parser of an IR (Intermediate Representation) of LLVM (https://llvm.org/).
 # 					It elaborates the IR to generate a CDFG (Control DataFlow Graph) representation of the input function.
 #					Then, the CDFG is used in the following steps of the SDC project
 ############################################################################################################################################
@@ -52,7 +52,7 @@ from src.utilities.cdfg_manager import *
 
 class Parser():
 
-	# it takes as input the ssa_path where the SSA IR is located and the name of the input function 
+	# it takes as input the ssa_path where the SSA IR is located and the name of the input function
 	def __init__(self, ssa_path, example_name, log=None):
 		if log != None:
 			self.log = log
@@ -65,7 +65,7 @@ class Parser():
 		self.set_top_function(example_name) #it assumes that the filename corresponds to top function
 		self.create_cfg() # it generates the control flow graph
 		self.create_cdfg() # it generates the control data flow graph
-	
+
 	#function to check validity of the parser
 	def is_valid(self):
 		valid = True
@@ -87,7 +87,7 @@ class Parser():
 			ssa = f.read()
 		self.assembly = parse_assembly(ssa)
 		self.assembly.verify()
-	
+
 	#function to set top function of the input assembly file
 	def set_top_function(self, top_function_name):
 		assert(not(self.assembly is None)) #check that assembly is not None and the read_ssa_file has been called at least once
@@ -118,12 +118,12 @@ class Parser():
 		for bbNode in get_cdfg_nodes(init_cfg):
 			label = dic_bbNode_bbLabel[bbNode] # label of bb_node instance
 			idNum = self.dic_bbID[label] # id number of bb_node instance
-			self.cfg.add_node(label, id=idNum, label=f'BB{idNum}\n({label})') # adding node in CFG 
-		for bb_edge in get_cdfg_edges(init_cfg): # add each BB edge in the CFG 
+			self.cfg.add_node(label, id=idNum, label=f'BB{idNum}\n({label})') # adding node in CFG
+		for bb_edge in get_cdfg_edges(init_cfg): # add each BB edge in the CFG
 			bb_src = bb_edge[0]
 			bb_dst = bb_edge[1]
 			self.cfg.add_edge(dic_bbNode_bbLabel[bb_src], dic_bbNode_bbLabel[bb_dst])
-	
+
 	# function to check if the edge is backedge
 	def is_backedge(self, src, dst):
 		src_bbID, dst_bbID = self.cdfg.get_node(src).attr['bbID'], self.cdfg.get_node(dst).attr['bbID'] # retrieve src and dst bbID
@@ -152,7 +152,7 @@ class Parser():
 		for bb_id in set([ node.attr['bbID'] for node in get_cdfg_nodes(self.cdfg) if node.attr['bbID'] != '' ]): # iterating through the BB ids to recreate BB graph
 			self.cdfg.add_subgraph([ str(cdfg_node) for cdfg_node in get_cdfg_nodes(self.cdfg) if cdfg_node.attr['bbID'] == bb_id ], name = f'cluster_{bb_id}', color = 'darkgreen', label = bb_id)
 			# associating to each node in the cdfg the corresponding BB id it belongs to
-		
+
 		# creating the bb control signals between branch(es) and phi(s)
 		self.create_bb_control_signals()
 
@@ -174,18 +174,18 @@ class Parser():
 					result = match.group(1)
 					if instruction_key == 'icmp':
 						bitwidth = 1 # comparators have boolean output
-						label = 'icmp ' + match.group(2) + ' ' + result # icmp instruction format: result = icmp icmp_type output_type input_1 input_2
+						label = 'icmp_' + match.group(2) + ' ' + result # icmp instruction format: result = icmp icmp_type output_type input_1 input_2
 					else:
 						label = instruction_key + ' ' + result
 						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[-3])[2]
-				# unary instruction case 
+				# unary instruction case
 				elif instruction_key in unary_instructions:
 					if "ext" in instruction_key: # instruction format: result = unary_instruction input_type input to output_type
 						operands = [match.group(3)]
 						result = match.group(1)
 						label = instruction_key + ' ' + result
 						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[-1])[2]
-					elif instruction_key == "fneg": # fneg instruction format: result = fneg output_type input 
+					elif instruction_key == "fneg": # fneg instruction format: result = fneg output_type input
 						operands = [ n for n in match.groups() if n != None][-1]
 						result = match.group(1)
 						label = instruction_key + ' ' + result
@@ -195,12 +195,12 @@ class Parser():
 					if "load" in instruction_key:
 						operands = [ match.group(5) ]
 						result = match.group(1)
-						label = 'load ' + result
+						label = 'load_' + result
 						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[2])[2]
 					elif instruction_key == 'store':
 						operands = match.group(3, 5)
-						result = 'store ' + match.group(5)
-						label = 'store ' + result
+						result = 'store_' + match.group(5)
+						label = 'store_' + result
 						bitwidth = re.match(r'(f|i)(\d+)', match.groups()[1])[2]
 					elif instruction_key == 'getelementptr':
 						operands = match.group(4, 6)
@@ -211,11 +211,11 @@ class Parser():
 				elif instruction_key in control_instructions:
 					if instruction_key == 'ret':
 						operands = [match.group(2)]
-						result = f'ret {bbID}'
+						result = f'ret_{bbID}'
 						label = result
 					elif instruction_key == 'br':
 						operands = [match.group(1)]
-						result = f'br {bbID}'
+						result = f'br_{bbID}'
 						label = result
 					elif instruction_key == 'phi':
 						result = match.group(1)
@@ -235,7 +235,7 @@ class Parser():
 				# update the dictionary containing the list of nodes per type
 				self.dic_nodes = update_dic_list(self.dic_nodes ,instruction_key, result.replace('%', '_'))
 				break
-				
+
 		result = result.replace('%', '_')
 		constants = [ op for op in operands if '%' not in op ] # constants are operands without initial '%' symbol
 		variables = [ op.replace('%', '_') for op in operands if '%' in op ] # variables are operands with initial '%' symbol
@@ -243,7 +243,7 @@ class Parser():
 			cdfg.add_node(f'{result}', label = label.replace('%', '_'), id = self.dic_bbID[bbID], bbID = bbID, instruction = instruction.strip(), type=instruction_key, bitwidth=bitwidth) # add node related to the instruction
 			self.log.debug("Added node {0} with input variable {1} and input constant {2}".format(label, variables, constants))
 			for input_ in variables: # add a node for each input variable if not present and the edge connecting it to result
-				if input_ in self.function_inputs: 
+				if input_ in self.function_inputs:
 					# if the variable is a function input, the bbid is assigned depending on last operation calling it, and we call the type of this variable "argument"
 					#cdfg.add_node(f'{input_}', id = self.dic_bbID[bbID], bbID = bbID, type='argument')
 					cdfg.add_node(f'{input_}', type='argument')
@@ -252,7 +252,7 @@ class Parser():
 				cdfg.add_edge(f'{input_}', f'{result}')
 				self.log.debug("Added variable node {0} and edge {0} -> {1}".format(input_, result))
 			for cst_id_, input_ in enumerate(constants): # add a node for each input constant and the edge connecting it to result, each constant should have an unique identifier to distinguish
-				cdfg.add_node(f'cst_{result}_{cst_id_}', id = self.dic_bbID[bbID], bbID = bbID,  type='constant', label=f'{input_}', value=f'{cst_id_}') 
+				cdfg.add_node(f'cst_{result}_{cst_id_}', id = self.dic_bbID[bbID], bbID = bbID,  type='constant', label=f'{input_}', value=f'{cst_id_}') # TODO: maybe we don't need the bitwidth for constant nodes, even for functional correctness reasons
 				cdfg.add_edge(f'cst_{result}_{cst_id_}', f'{result}')
 				self.log.debug("Added constant node {0} and edge {0} -> {1}".format(input_, result))
 
@@ -262,14 +262,15 @@ class Parser():
 		if not("br" in self.dic_nodes) or not("phi" in self.dic_nodes): # check that phi(s) and branch(es) have been already included
 			assert len(list(get_cdfg_nodes(self.cfg))) == 1, "Branch(es) and Phi(s) should be present if there are multiple BBs"
 			return
-		branch_nodes_list = self.dic_nodes["br"]
-		phi_nodes_list = self.dic_nodes["phi"]
-		for branch_name in branch_nodes_list:
-			for phi_name in phi_nodes_list:
-				branch_node = self.cdfg.get_node(branch_name)
-				phi_node = self.cdfg.get_node(phi_name)
-				if branch_node.attr['bbID'] == phi_node.attr['bbID']:
-					self.cdfg = create_control_edge(self.cdfg, branch_node, phi_node)
+
+		# branch_nodes_list = self.dic_nodes["br"]
+		# phi_nodes_list = self.dic_nodes["phi"]
+		# for branch_name in branch_nodes_list:
+		# 	for phi_name in phi_nodes_list:
+		# 		branch_node = self.cdfg.get_node(branch_name)
+		# 		phi_node = self.cdfg.get_node(phi_name)
+		# 		if branch_node.attr['bbID'] == phi_node.attr['bbID']:
+		# 			self.cdfg = create_control_edge(self.cdfg, branch_node, phi_node)
 		for e in get_cdfg_edges(self.cdfg):
 			if self.is_backedge(e[0], e[1]):
 				e.attr['style'] = 'dashed'
@@ -280,7 +281,7 @@ class Parser():
 		self.cdfg.draw(output_file, prog=layout) # drawing cdfg in the .pdf file
 		self.cdfg.write(output_file.replace('.pdf', '.dot')) # describing cdfg in dot file
 		self.log.info("Printed cdfg in file {0} with layout {1}. Its dot representation is in file {2}".format(output_file, layout, output_file.replace('.pdf','.dot')))
-		cfg_filename = output_file.replace('.pdf', '.cfg.pdf') 
+		cfg_filename = output_file.replace('.pdf', '.cfg.pdf')
 		self.cfg.draw(cfg_filename, prog=layout) # drawing cfg in the .pdf file
 		self.cfg.write(cfg_filename.replace('.pdf', '.dot')) # describing cfg in dot file
 		self.log.info("Printed cfg in file {0} with layout {1}. Its dot representation is in file {2}".format(cfg_filename, layout, cfg_filename.replace('.pdf','.dot')))
