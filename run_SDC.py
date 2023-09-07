@@ -31,7 +31,7 @@ def main(args):
 	examples_list = examples_list_file.read().split("\n")
 	examples_list_file.close()
 
-	allowed_techniques = ["asap", "alap", "asap_rconst", "pipelined", "pipelined_rconst"]
+	allowed_techniques = ["asap", "alap", "asap_rconst", "pipelined", "pipelined_rconst", "all"]
 	if args.methods != None:
 		techniques = args.methods.split()
 		for t in techniques:
@@ -95,7 +95,6 @@ def asap(parser, base_path, example_name):
 	scheduler = Scheduler(parser, "asap", log=log)
 	scheduler.create_scheduling_ilp()
 	status = scheduler.solve_scheduling_ilp(base_path, example_name)
-	sink_delays = scheduler.get_sink_delays()
 	chart_title = "{0} - {1}".format("asap", example_name)
 	scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, "asap") )
 	scheduler.print_scheduling_summary("{0}/{1}/{2}_{1}.txt".format(base_path, example_name, "asap") )
@@ -190,7 +189,7 @@ def pipelined_rconstrained(parser, base_path, example_name):
 if __name__ == '__main__':
 	arg_parser = argparse.ArgumentParser(description="Welcome to the SDC project for the Summer Semester 2023!")
 	arg_parser.add_argument('--input_list', type=str, help='Input filelist containing examples to run', default="filelist.lst")
-	arg_parser.add_argument('--methods', type=str, help='Space-separated list of scheduling methods that should be run, all methods are tested when this is not specified.  Possible values are: naive, asap, alap, asap_rconst, pipelined, pipelined_rconst, all')
+	arg_parser.add_argument('--methods', type=str, help='Space-separated list of scheduling methods that should be run, all methods are tested when this is not specified.  Possible values are: asap, alap, asap_rconst, pipelined, pipelined_rconst, all')
 	arg_parser.add_argument('--examples_folder', type=str, help='Path of the examples folder', default="examples")
 	arg_parser.add_argument('--frontend', action='store_true' , help='Execute only frontend', default=False)
 	arg_parser.add_argument('--debug', action='store_true' , help='Set debug mode', default=False)
