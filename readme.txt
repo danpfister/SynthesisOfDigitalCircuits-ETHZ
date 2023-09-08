@@ -14,7 +14,7 @@ Example, ASAP and resource constrained pipelined ASAP scheduling:
 python3 run_SDC.py --methods "asap pipelined_rconst"
 
 
-The usage of the tester is equally straightforward and can be run by executing "/opt/sdc-tester/tester.py" in the terminal. Like run_SDC, the tester tests all scheduling technique and kernel combinations by default which can be controlled using arguments. The kernels that should be used for testing can be specified with the --kernels argument, which takes a space-separated list of kernels. Each kernel is accompanied by a comma and either a 1 or 0 depending on whether the kernel contains loops and therefore can be used for pipeline tests.
+The usage of the tester is equally straightforward and can be run by executing "/opt/sdc-tester/tester.py" in the terminal. The tester tried to test the code in the src folder under the current directory your terminal is in. For instance, if your terminal is in /some/dir and you run the tester, it will try to test the scheduler in /some/dir/src. Like run_SDC, the tester tests all scheduling technique and kernel combinations by default which can be controlled using arguments. The kernels that should be used for testing can be specified with the --kernels argument, which takes a space-separated list of kernels. Each kernel is accompanied by a comma and either a 1 or 0 depending on whether the kernel contains loops and therefore can be used for pipeline tests.
 
 Example: only test kernel 1(no loops)
 
