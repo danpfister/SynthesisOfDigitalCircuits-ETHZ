@@ -89,13 +89,13 @@ class Scheduler:
 
 		#draw the cdfg for testing your code in task 1
 		self.cdfg.layout(prog='dot')
-    	self.cdfg.draw('output.pdf')
+		self.cdfg.draw('output.pdf')
 	
 		#end the program here until you're ready to start task 2
 		quit()
 
 
-	def add_nodes_to_ilp(self);
+	def add_nodes_to_ilp(self):
 		#output to terminal that this is the next function to implement
 		self.log.error("The add_nodes_to_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
 		self.log.info("Exiting early due to an unimplemented function")
@@ -188,8 +188,7 @@ class Scheduler:
 	"""
 	def create_scheduling_ilp(self, sink_delays=None):
 		if self.sched_tech == "asap":
-			# TODO: write your code here
-			pass
+			self.set_data_dependency_constraints()
 		elif self.sched_tech == "alap":
 			# TODO: write your code here
 			pass
