@@ -142,8 +142,15 @@ class Scheduler:
 	Adds supersinks and supernodes to the CDFG and connects them to the existing nodes according the the conventions in the assignment
 	"""
 	def add_artificial_nodes(self):
+		#output to terminal that this is the next function to implement
 		self.log.error("The add_artificial_nodes member function in src/main_flow/scheduler.py has not yet been implemented")
 		self.log.info("Exiting early due to an unimplemented function")
+
+		#draw the cdfg for testing your code in task 1
+		self.cdfg.layout(prog='dot')
+    	self.cdfg.draw('output.pdf')
+	
+		#end the program here until you're ready to start task 2
 		quit()
 
 	"""
