@@ -78,12 +78,41 @@ class Scheduler:
 		# define ilp variable per each node
 		self.add_nodes_to_ilp()
 		pass
+	
+	"""
+	Adds supersinks and supernodes to the CDFG and connects them to the existing nodes according the the conventions in the assignment
+	"""
+	def add_artificial_nodes(self):
+		#output to terminal that this is the next function to implement
+		self.log.error("The add_artificial_nodes member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+
+		#draw the cdfg for testing your code in task 1
+		self.cdfg.layout(prog='dot')
+    	self.cdfg.draw('output.pdf')
+	
+		#end the program here until you're ready to start task 2
+		quit()
+
 
 	def add_nodes_to_ilp(self);
 		#output to terminal that this is the next function to implement
 		self.log.error("The add_nodes_to_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
 		self.log.info("Exiting early due to an unimplemented function")
 		quit()
+
+
+	"""
+	Adds data dependency constraints to the scheduler object's constraint set based on the edges between CDFG nodes.
+	@type break_bb_connections: boolean
+	@param break_bb_connections: If true the function should ignore edges between nodes in different BBs
+	"""
+	def set_data_dependency_constraints(self, break_bb_connections=False):
+		#output to terminal that this is the next function to implement
+		self.log.error("The set_data_dependency_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+		quit()
+
 
 
 	"""
@@ -95,16 +124,6 @@ class Scheduler:
 		assert(technique in scheduling_techniques) # the scheduling technique chosen must belong to the allowed ones
 		self.log.info(f'Setting the scheduling technique to be "{technique}"')
 		self.sched_tech = technique
-
-	"""
-	Adds data dependency constraints to the scheduler object's constraint set based on the edges between CDFG nodes.
-	@type break_bb_connections: boolean
-	@param break_bb_connections: If true the function should ignore edges between nodes in different BBs
-	"""
-	def set_data_dependency_constraints(self, break_bb_connections=False):
-		# TODO: write your code here
-		pass
-
 
 	"""
 	Adds constraints that enforce a given II value to the constraint set.
@@ -144,21 +163,6 @@ class Scheduler:
 	def get_sink_delays(self):
 		# TODO: write your code here
 		pass
-
-	"""
-	Adds supersinks and supernodes to the CDFG and connects them to the existing nodes according the the conventions in the assignment
-	"""
-	def add_artificial_nodes(self):
-		#output to terminal that this is the next function to implement
-		self.log.error("The add_artificial_nodes member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-
-		#draw the cdfg for testing your code in task 1
-		self.cdfg.layout(prog='dot')
-    	self.cdfg.draw('output.pdf')
-	
-		#end the program here until you're ready to start task 2
-		quit()
 
 	"""
 	Create the optimization function by adding variables to the opt_fun object according to the specified scheduling technique
