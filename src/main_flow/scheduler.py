@@ -101,18 +101,23 @@ class Scheduler:
 		self.log.info("Exiting early due to an unimplemented function")
 		quit()
 
+	def create_asap_scheduling_ilp(self):
+		self.set_data_dependency_constraints()
 
 	"""
 	Adds data dependency constraints to the scheduler object's constraint set based on the edges between CDFG nodes.
-	@type break_bb_connections: boolean
-	@param break_bb_connections: If true the function should ignore edges between nodes in different BBs
 	"""
-	def set_data_dependency_constraints(self, break_bb_connections=False):
+	def set_data_dependency_constraints(self):
 		#output to terminal that this is the next function to implement
 		self.log.error("The set_data_dependency_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
 		self.log.info("Exiting early due to an unimplemented function")
 		quit()
 
+	def set_asap_objective_function(self):
+		#output to terminal that this is the next function to implement
+		self.log.error("The set_asap_objective_function member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+		quit()
 
 
 	"""
@@ -169,8 +174,7 @@ class Scheduler:
 	"""
 	def set_opt_function(self):
 		if self.sched_tech == 'asap':
-			# TODO: write your code here
-			pass
+			self.set_asap_objective_function()
 		elif self.sched_tech == 'alap':
 			# TODO: write your code here
 			pass
@@ -188,7 +192,7 @@ class Scheduler:
 	"""
 	def create_scheduling_ilp(self, sink_delays=None):
 		if self.sched_tech == "asap":
-			self.set_data_dependency_constraints()
+			self.create_asap_scheduling_ilp()
 		elif self.sched_tech == "alap":
 			# TODO: write your code here
 			pass
