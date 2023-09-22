@@ -76,8 +76,15 @@ class Scheduler:
 		self.opt_fun = Opt_Function(self.ilp, log=log)
 
 		# define ilp variable per each node
-		# TODO: write your code here
+		self.add_nodes_to_ilp()
 		pass
+
+	def add_nodes_to_ilp(self);
+		#output to terminal that this is the next function to implement
+		self.log.error("The add_nodes_to_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+		quit()
+
 
 	"""
 	Sets the scheduling technique of the scheduler
