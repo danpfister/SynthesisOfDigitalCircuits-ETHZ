@@ -30,7 +30,7 @@ def sqrt(n):
 #					- sched_sol : scheduling solution
 #					- ilp: ilp object
 #					- constraints: constraints object
-#					- opt_fun: optmization function object
+#					- obj_fun: optmization function object
 #					- II : Initiation Interval achieved by scheduling solution
 #					- log: logger object used to output logs
 ############################################################################################################################################
@@ -41,7 +41,7 @@ def sqrt(n):
 #					- set_II_constraints: setting the initialization interval to the value II_value
 #					- add_max_latency_constraint : add max_latency constraint and optimization
 #					- add_sink_delays_constraints : add sink delays constraints
-#					- set_opt_function: setting the optimiztion function, according to the optimization option
+#					- set_obj_function: setting the optimiztion function, according to the optimization option
 #					- create_scheduling_ilp : create the ILP of the scheduling
 #					- solve_scheduling_ilp: solve the ilp and obtain scheduling
 #					- get_ilp_tuple : get ilp, constraints and optimization function
@@ -73,7 +73,7 @@ class Scheduler:
 		# set solver options
 		self.ilp = ILP(log=log)
 		self.constraints = Constraint_Set(self.ilp, log=log)
-		self.opt_fun = Opt_Function(self.ilp, log=log)
+		self.obj_fun = Obj_Function(self.ilp, log=log)
 
 		# define ilp variable per each node
 		self.add_nodes_to_ilp()
@@ -178,9 +178,12 @@ class Scheduler:
 	def set_II_constraints(self, II_value):
 		# TODO: write your code here
 		pass
-	
+
 
 #### DO NOT TOUCH FROM THIS LINE ####
+
+	def pass_scheduling_ilp(self, resources):
+		resources.set_scheduling_ilp(self.ilp, self.constraints, self.obj_fun)
 
 	"""
 	Sets the scheduling technique of the scheduler
@@ -205,12 +208,12 @@ class Scheduler:
 		elif self.sched_tech == "pipelined":
 			# TODO: write your code here
 			pass
-		self.set_opt_function()
+		self.set_obj_function()
 
 	"""
-	Create the optimization function by adding variables to the opt_fun object according to the specified scheduling technique
+	Create the optimization function by adding variables to the obj_fun object according to the specified scheduling technique
 	"""
-	def set_opt_function(self):
+	def set_obj_function(self):
 		if self.sched_tech == 'asap':
 			self.set_asap_objective_function()
 		elif self.sched_tech == 'alap':

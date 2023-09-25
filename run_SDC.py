@@ -119,11 +119,19 @@ def alap(parser, base_path, example_name):
 def asap_rconstrained(parser, base_path, example_name):
 	scheduler = Scheduler(parser, "asap", log=log)
 	scheduler.create_scheduling_ilp()
-	ilp, constraints, opt_function = scheduler.get_ilp_tuple()
-	resource_manager = Resources(parser, { 'add' : 1 , 'mul' : 1, 'zext' : 1}, log=log)
-	resource_manager.add_resource_constraints_sdc(ilp, constraints, opt_function)
+
+	ilp_dependency_inj = scheduler.pass_scheduling_ilp
+	resource_manager = Resources(parser, ilp_dependency_inj, log=log)
+	
+	resouce_constraint_dict = {}
+	resouce_constraint_dict["add"] = 1
+	resouce_constraint_dict["mul"] = 1
+	resouce_constraint_dict["zext"] = 1
+
+	resource_manager.add_resource_constraints(resouce_constraint_dict)
+
 	status = scheduler.solve_scheduling_ilp(base_path, example_name)
-	sink_delays = scheduler.get_sink_delays() # sink delays for the alap resource constrained might increase
+
 	chart_title = "{0} - {1}".format("asap resource constrained", example_name)
 	scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_resource_ADD_1_MUL_1.pdf".format(base_path, example_name, "asap"))
 	scheduler.print_scheduling_summary("{0}/{1}/{2}_{1}_resource_ADD_1_MUL_1.txt".format(base_path, example_name, "asap") )
