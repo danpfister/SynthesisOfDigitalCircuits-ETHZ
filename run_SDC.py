@@ -158,10 +158,15 @@ def pipelined(parser, base_path, example_name):
 
 def pipelined_rconstrained(parser, base_path, example_name):
 	chart_title = "{0} - {1}".format("asap pipelined resource constrained", example_name)
-	status = 0
-	ii = 0
-	scheduler = 0
+
+
+	resource_constraint_dict = {}
+	resource_constraint_dict["mul"] = 1
+	resource_constraint_dict["add"] = 1
+	resource_constraint_dict["zext"] = 1
+
 	succesful = False
+	ii = 0
 	while not succesful:
 		ii= ii + 1
 		print(f"Trying II = {ii}")
@@ -169,14 +174,11 @@ def pipelined_rconstrained(parser, base_path, example_name):
 		scheduler.create_scheduling_ilp(II=ii)
 		
 		resource_manager = Resource_Manager(parser, scheduler.pass_scheduling_ilp, log=log)
-		resource_constraint_dict = {}
-		resource_constraint_dict["mul"] = 1
-		resource_constraint_dict["add"] = 1
-		resource_constraint_dict["zext"] = 1
+
 		resource_manager.add_resource_constraints(resource_constraint_dict)
 		status = scheduler.solve_scheduling_ilp(base_path, example_name)
-
-		succesful = resource_manager.check_resource_constraints_pipelined()
+		if status == 1:
+			succesful = resource_manager.check_resource_constraints_pipelined(resource_constraint_dict, ii)
 
 	scheduler.print_gantt_chart(chart_title, "{0}/{1}/{2}_{1}_asap_pipelined_res_constrained.pdf".format(base_path, example_name, "pipelined"))
 	scheduler.print_scheduling_summary("{0}/{1}/{2}_{1}_asap_pipelined_res_constrained.txt".format(base_path, example_name, "pipelined") )

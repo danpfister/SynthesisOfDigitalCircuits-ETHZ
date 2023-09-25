@@ -19,10 +19,9 @@ import logging
 #					- log: logger object used to output logs
 ############################################################################################################################################
 #	FUNCTIONS:
-#					- set_ilp_tuple : set ilp, constraints and optimization function
-#					- set_resource_constraints : set resource constraints
 # 					- add_resource_constraints : setting up the maximum resource usage per res type in the constraint set
 #					- add_resource_constraints_pipelined : add resources constraints for pipelined scheduling
+#					- check_resource_dict : validate values in resource dict
 ############################################################################################################################################
 ############################################################################################################################################
 
@@ -53,8 +52,8 @@ class Resource_Manager:
 	"""
 	Adds constraints to the constraint set that enforce the resource constraints contained in the resource dictionary
 	"""
-	def add_resource_constraints(self, resource_dic):
-		self.check_resource_dict(resource_dic)
+	def add_resource_constraints(self, resource_dict):
+		self.check_resource_dict(resource_dict)
 
 		#output to terminal that this is the next function to implement
 		self.log.error("The add_resource_constraints member function in src/main_flow/resources.py has not yet been implemented")
@@ -63,8 +62,8 @@ class Resource_Manager:
 		quit()
 
 	# function to add resources constraints for pipelined scheduling
-	def check_resource_constraints_pipelined(self):
-		self.check_resource_dict(resource_dic)
+	def check_resource_constraints_pipelined(self, resource_dict, II):
+		self.check_resource_dict(resource_dict)
 
 		#output to terminal that this is the next function to implement
 		self.log.error("The check_resource_constraints_pipelined member function in src/main_flow/resources.py has not yet been implemented")
@@ -76,8 +75,8 @@ class Resource_Manager:
 	Checks the types specified in the given resource dictionary(a dictionary containing something like "bogusoperationtype" wouldn't be valid) and sets the resource_dic member variable of the class to the specified resource dictionary
 	@param resource_dic: the resource dictionary that the class should use
 	"""
-	def check_resource_dict(self, resource_dic):
-		for resource in resource_dic:
+	def check_resource_dict(self, resource_dict):
+		for resource in resource_dict:
 			if not(resource in allowed_resources): # the resource type should be present in the list of allowed resource types
 				self.log.error("Resource {0} is not allowed (allowed resources = {1})".format(resource, allowed_resources))
 				continue

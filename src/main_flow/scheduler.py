@@ -38,13 +38,11 @@ def sqrt(n):
 #					- set_sched_technique : set scheduling technique
 #					- add_artificial_nodes : create super nodes
 #					- set_data_dependency_constraints: setting the data dependency constraints
-#					- set_II_constraints: setting the initialization interval to the value II_value
-#					- add_max_latency_constraint : add max_latency constraint and optimization
+#					- set_max_latency_constraints: setting the initialization interval to the value II_value
 #					- add_sink_delays_constraints : add sink delays constraints
 #					- set_obj_function: setting the optimiztion function, according to the optimization option
 #					- create_scheduling_ilp : create the ILP of the scheduling
 #					- solve_scheduling_ilp: solve the ilp and obtain scheduling
-#					- get_ilp_tuple : get ilp, constraints and optimization function
 #					- get_sink_delays: get delays of sinks after computing solution
 #					- print_gantt_chart : prints the gantt chart of a scheduling solution
 #					- print_scheduling_summary: it prints the start time of each node into a txt report. If the loop is pipelined, it also prints the achieved II.
@@ -170,14 +168,14 @@ class Scheduler:
 		quit()
 
 	"""
-	Adds constraints that enforce a given II value to the constraint set.
-	@type II_value: integer
-	@param II_value: the II with which the scheduler is going to be constrained
+	Adds constraints that enforce inter-iteration data dependencies
+	@type II: integer
+	@param II: the II value for writing the inter-iteration data dependencies.
 	"""
-	def set_II_constraints(self, II_value):
+	def set_pipelining_constraints(self, II):
 		#You must write both the implementation and the call of this function. 
 
-		self.log.error("The set_II_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.error("The set_pipelining_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
 		self.log.info("Exiting early due to an unimplemented function")
 		quit()
 
