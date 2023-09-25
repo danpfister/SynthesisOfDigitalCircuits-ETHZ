@@ -119,6 +119,25 @@ class Scheduler:
 		self.log.info("Exiting early due to an unimplemented function")
 		quit()
 
+	"""
+	Returns the sv of each BB's supersink in the form of a dictionary/list
+	"""
+	def get_sink_svs(self):
+		#output to terminal that this is the next function to implement
+		self.log.error("The get_sink_svs member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+		quit()
+
+	"""
+	Sets maximum sv constraints for each BB according to values passed to in in a dictionary, intended for ALAP
+	@type sink_svs: dictionary
+	@param sink_svs: a dictionary containing an identifier for a BB and a corresponding maximum sv
+	"""
+	def add_sink_sv_constraints(self, sink_svs):
+		#output to terminal that this is the next function to implement
+		self.log.error("The add_sink_sv_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+		quit()
 
 	"""
 	Sets the scheduling technique of the scheduler
@@ -139,21 +158,6 @@ class Scheduler:
 		# TODO: write your code here
 		pass
 
-	"""
-	Constrains each BB with a maximum latency, i.e. defines a new ilp variable and sets constrains that require each BB's latency to be lower than that
-	"""
-	def add_max_latency_constraint(self):
-		# TODO: write your code here
-		pass
-
-	"""
-	Sets maximum delay constraints for each BB according to values passed to in in a dictionary, intended for ALAP
-	@type sink_delays: dictionary
-	@param sink_delays: a dictionary containing an identifier for a BB and a corresponding maximum delay
-	"""
-	def add_sink_delays_constraints(self, sink_delays):
-		# TODO: write your code here
-		pass
 
 	"""
 	Return a tuple consisting of the ilp object, constraint set and the optimization function
@@ -162,12 +166,7 @@ class Scheduler:
 		# TODO: write your code here
 		pass
 
-	"""
-	Returns the delay of each BB's supersink in the form of a dictionary/list
-	"""
-	def get_sink_delays(self):
-		# TODO: write your code here
-		pass
+
 
 	"""
 	Create the optimization function by adding variables to the opt_fun object according to the specified scheduling technique

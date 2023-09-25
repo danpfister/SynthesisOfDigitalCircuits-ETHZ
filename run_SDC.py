@@ -105,10 +105,10 @@ def alap(parser, base_path, example_name):
 	asap = Scheduler(parser, "asap", log=log)
 	asap.create_scheduling_ilp()
 	status = asap.solve_scheduling_ilp(base_path, example_name)
-	sink_delays = asap.get_sink_delays()
+	sink_svs = asap.get_sink_svs()
 
 	scheduler = Scheduler(parser, "alap", log=log)
-	scheduler.create_scheduling_ilp(sink_delays)
+	scheduler.create_scheduling_ilp(sink_svs)
 	status = scheduler.solve_scheduling_ilp(base_path, example_name)
 	chart_title = "{0} - {1}".format("alap", example_name)
 	scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}.pdf".format(base_path, example_name, "alap") )
