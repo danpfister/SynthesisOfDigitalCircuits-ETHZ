@@ -94,25 +94,37 @@ class Scheduler:
 		#end the program here until you're ready to start task 2
 		quit()
 
-
+	"""
+	Adds the scheduling variable of each node in the CDFG to the ILP formulation.
+	"""
 	def add_nodes_to_ilp(self):
 		#output to terminal that this is the next function to implement
 		self.log.error("The add_nodes_to_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
 		self.log.info("Exiting early due to an unimplemented function")
 		quit()
 
-	def create_asap_scheduling_ilp(self):
-		self.set_data_dependency_constraints()
-
 	"""
 	Adds data dependency constraints to the scheduler object's constraint set based on the edges between CDFG nodes.
 	"""
 	def set_data_dependency_constraints(self):
-		#output to terminal that this is the next function to implement
+		#You must write both the implementation and the call of this function. 
+
 		self.log.error("The set_data_dependency_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
 		self.log.info("Exiting early due to an unimplemented function")
 		quit()
 
+	"""
+	Adds the constraints needed to allow minimizing the ASAP objective function to produce a valid result.
+	"""
+	def create_asap_scheduling_ilp(self):
+		#output to terminal that this is the next function to implement
+		self.log.error("The create_asap_scheduling_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+		quit()
+
+	"""
+	Adds terms to the objective function with coefficients that will ensure each node is scheduled ASAP.
+	"""
 	def set_asap_objective_function(self):
 		#output to terminal that this is the next function to implement
 		self.log.error("The set_asap_objective_function member function in src/main_flow/scheduler.py has not yet been implemented")
@@ -140,6 +152,37 @@ class Scheduler:
 		quit()
 
 	"""
+	Adds the constraints needed to allow minimizing the ALAP objective function to produce a valid result.
+	"""
+	def create_alap_scheduling_ilp(self, sink_svs):
+		#output to terminal that this is the next function to implement
+		self.log.error("The create_alap_scheduling_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+		quit()
+
+	"""
+	Adds terms to the objective function with coefficients that will ensure each node is scheduled ALAP.
+	"""
+	def set_alap_objective_function(self):
+		#output to terminal that this is the next function to implement
+		self.log.error("The set_alap_objective_function member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+		quit()
+
+
+	"""
+	Adds constraints that enforce a given II value to the constraint set.
+	@type II_value: integer
+	@param II_value: the II with which the scheduler is going to be constrained
+	"""
+	def set_II_constraints(self, II_value):
+		# TODO: write your code here
+		pass
+	
+
+#### DO NOT TOUCH FROM THIS LINE ####
+
+	"""
 	Sets the scheduling technique of the scheduler
 	@type technique: String
 	@param technique: The name of the scheduling technique
@@ -150,23 +193,19 @@ class Scheduler:
 		self.sched_tech = technique
 
 	"""
-	Adds constraints that enforce a given II value to the constraint set.
-	@type II_value: integer
-	@param II_value: the II with which the scheduler is going to be constrained
+	Create the complete ILP scheduling by calling functions that add constraints and create the optimization function according to the scheduling technique
+	@type sink_sv: dictionary
+	@param sink_svs: dictionary containing BB latency bounds for ALAP
 	"""
-	def set_II_constraints(self, II_value):
-		# TODO: write your code here
-		pass
-
-
-	"""
-	Return a tuple consisting of the ilp object, constraint set and the optimization function
-	"""
-	def get_ilp_tuple(self):
-		# TODO: write your code here
-		pass
-
-
+	def create_scheduling_ilp(self, sink_svs=None):
+		if self.sched_tech == "asap":
+			self.create_asap_scheduling_ilp()
+		elif self.sched_tech == "alap":
+			self.create_alap_scheduling_ilp(sink_svs)
+		elif self.sched_tech == "pipelined":
+			# TODO: write your code here
+			pass
+		self.set_opt_function()
 
 	"""
 	Create the optimization function by adding variables to the opt_fun object according to the specified scheduling technique
@@ -175,32 +214,20 @@ class Scheduler:
 		if self.sched_tech == 'asap':
 			self.set_asap_objective_function()
 		elif self.sched_tech == 'alap':
-			# TODO: write your code here
-			pass
+			self.set_alap_objective_function()
 		elif self.sched_tech == 'pipelined':
 			# TODO: write your code here
 			pass
 		else:
 			self.log.error(f'Not implemented option! {self.sched_tech}')
 			raise NotImplementedError
-
+		
 	"""
-	Create the complete ILP scheduling by calling functions that add constraints and create the optimization function according to t scheduling technique
-	@type sink_delays: dictionary
-	@param sink_delays: dictionary containing BB latency bouinds for ALAP
+	Return a tuple consisting of the ilp object, constraint set and the optimization function
 	"""
-	def create_scheduling_ilp(self, sink_delays=None):
-		if self.sched_tech == "asap":
-			self.create_asap_scheduling_ilp()
-		elif self.sched_tech == "alap":
-			# TODO: write your code here
-			pass
-		elif self.sched_tech == "pipelined":
-			# TODO: write your code here
-			pass
-		self.set_opt_function()
-
-#### DO NOT TOUCH FROM THIS LINE ####
+	def get_ilp_tuple(self):
+		# TODO: write your code here
+		pass
 
 	# function to solve the ilp and obtain scheduling
 	def solve_scheduling_ilp(self, base_path, example_name):
@@ -232,6 +259,7 @@ class Scheduler:
 			self.log.info(f'The II for this cdfg is {self.ilp.get_ilp_solution()["II"]}')
 			self.II = self.ilp.get_ilp_solution()["II"]
 		return res
+
 
 	# function to get the gantt chart of a scheduling
 	def print_gantt_chart(self, chart_title="Untitled", file_path=None):
