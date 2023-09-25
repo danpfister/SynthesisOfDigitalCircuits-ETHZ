@@ -17,34 +17,34 @@ def is_number(n):
 #
 ############################################################################################################################################
 #	DESCRIPTION:
-#				 The following class is used to describe the optimization function of the ILP formulation
+#				 The following class is used to describe the objective function of the ILP formulation
 ############################################################################################################################################
 #	ATTRIBUTES:
-#				- valid : validity of the optimizaiton function
-#				- function_coeff : output optimization function with coefficients
-#				- ilp_obj : ILP object linked to optimization function
+#				- valid : validity of the objimizaiton function
+#				- function_coeff : output objective function with coefficients
+#				- ilp_obj : ILP object linked to objective function
 #				- log: logger object used to output logs
 ############################################################################################################################################
 #	FUNCTIONS:
-#				- is_valid : returns the validity of the optimization function
-#				- add_variable : add variable and corresponding coefficient in the optimization function
-#				- remove_variable : remove variable in the optimization function
-#				- get_opt_function : get optimization function
+#				- is_valid : returns the validity of the objective function
+#				- add_variable : add variable and corresponding coefficient in the objective function
+#				- remove_variable : remove variable in the objective function
+#				- get_obj_function : get objective function
 ############################################################################################################################################
 ############################################################################################################################################
 
-class Opt_Function:
+class Obj_Function:
 
 	def __init__(self, ilp_obj, coeff_dict = None, log=None):
 		if log != None:
 			self.log = log
 		else:
-			self.log = logging.getLogger('opt_function') # if the logger is not given at object generation, create a new one
-		assert(ilp_obj != None) # ilp_obj represents the ILP object to which the optimization function belongs to
+			self.log = logging.getLogger('obj_function') # if the logger is not given at object generation, create a new one
+		assert(ilp_obj != None) # ilp_obj represents the ILP object to which the objective function belongs to
 		self.valid = True
 		self.function_coeff = {}
 		self.ilp_obj = ilp_obj
-		ilp_obj.set_optimization_function(self)
+		ilp_obj.set_objective_function(self)
 		if coeff_dict == None: # the coefficients can be added later on
 			return
 		var_list = ilp_obj.get_variables_list() # if the coefficient dictionary is different from None, it is used to generate the first 
@@ -55,14 +55,14 @@ class Opt_Function:
 				return
 		self.function_coeff = coeff_dict	
 
-	# function to return validity of the optimization function
+	# function to return validity of the objective function
 	def is_valid(self):
 		return self.valid
 
-	# function to add a new variable and its corresponding coefficient in the optimization function
+	# function to add a new variable and its corresponding coefficient in the objective function
 	def add_variable(self, var_name, coeff=1):
 		if not(self.valid):
-			self.log.error("Opt_Function object is not valid!")
+			self.log.error("Obj_Function object is not valid!")
 			return
 		if not(var_name in self.ilp_obj.get_variables_list()):
 			self.log.error("Variable not present in the ILP object")
@@ -71,18 +71,18 @@ class Opt_Function:
 			self.log.error("Coefficient {0} is not numeric!".format(coeff))
 			return
 		if var_name in self.function_coeff:
-			warning_string = "The variable {0} is already present in the optimization function.".format(var_name)
+			warning_string = "The variable {0} is already present in the objective function.".format(var_name)
 			warning_string += "\nOld coefficient : {1}\nNew Coefficient : {2}".format(self.function_coeff[var_name], coeff)
 			self.log.warning(warning_string)
 		self.function_coeff[self.ilp_obj.get_variable(var_name)] = coeff
 	
-	# function to remove a variable from the optimization function
+	# function to remove a variable from the objective function
 	def remove_variable(self, var_name):
 		assert(var_name in self.function_coeff)
 		del self.function_coeff[var_name]
 
-	# function to get the optimization function
-	def get_opt_function(self):
+	# function to get the objective function
+	def get_obj_function(self):
 		return ilp.LpAffineExpression(e=self.function_coeff)
 
 
@@ -99,7 +99,7 @@ class Opt_Function:
 #				'disequality_signs' is a dictionary that contains allowed signs for constraints
 ############################################################################################################################################
 #	ATTRIBUTES:
-#				- ilp_obj : ILP object linked to optimization function
+#				- ilp_obj : ILP object linked to objective function
 #				- constraints : set of constraints
 #				- log: logger object used to output logs
 ############################################################################################################################################
@@ -119,7 +119,7 @@ class Constraint_Set:
 			self.log = log
 		else:
 			self.log = logging.getLogger('constraint') # if the logger is not given at object generation, create a new one
-		assert(ilp_obj != None) # ilp_obj represents the ILP object to which the optimization function belongs to
+		assert(ilp_obj != None) # ilp_obj represents the ILP object to which the objective function belongs to
 		self.constraints = {}
 		self.ilp_obj = ilp_obj
 		ilp_obj.set_constraints(self)
@@ -176,7 +176,7 @@ class Constraint_Set:
 #				- model_minimize : model objective function should be minimized or maximized
 #				- model : ILP model
 #				- variables : ILP variables
-#				- opt_function : optimization function
+#				- obj_function : objective function
 #				- constraints : constraints set
 #				- status : status of the ILP solution
 #				- log: logger object used to output logs
@@ -188,8 +188,8 @@ class Constraint_Set:
 #				- remove_variable : remove an ILP variable
 #				- get_variable : get a variable
 #				- get_variables_list : get the list of variables
-#				- set_optimization_function : set the optimization function
-#				- update_model : update the model with a constraint set and an optimization function
+#				- set_objective_function : set the objective function
+#				- update_model : update the model with a constraint set and an objective function
 #				- solve_ilp	: solve the ILP formulation
 #				- reset_model : reset the ILP model
 #				- print_ilp : print the ILP formulation
@@ -218,7 +218,7 @@ class ILP:
 			self.model = ilp.LpProblem(self.model_name, ilp.LpMaximize)
 		self.variables = {}
 		self.constraints = None
-		self.opt_function = None
+		self.obj_function = None
 		self.status = None
 
 	# function to set the solver
@@ -257,12 +257,12 @@ class ILP:
 	def get_variables_list(self):
 		return self.variables
 
-	# function to set optimization function
-	def set_optimization_function(self, opt_function):
-		if not(type(opt_function) is Opt_Function): # check that the optimization function is an object of the class Opt_Function
-			self.log.error("Optimization Function needs to be object of the class Opt_Function")
+	# function to set objective function
+	def set_objective_function(self, obj_function):
+		if not(type(obj_function) is Obj_Function): # check that the objective function is an object of the class Obj_Function
+			self.log.error("Objimization Function needs to be object of the class Obj_Function")
 			return 
-		self.opt_function = opt_function
+		self.obj_function = obj_function
 
 	# function to set constraints' set
 	def set_constraints(self, constraints):
@@ -271,21 +271,21 @@ class ILP:
 			return 
 		self.constraints = constraints
 
-	# function to update the model with a constraint set and an optimization function
-	def update_model(self, model, constraints_set, opt_function):
+	# function to update the model with a constraint set and an objective function
+	def update_model(self, model, constraints_set, obj_function):
 		assert(not(model is None)) # check that model is not None
 		assert(not(constraints_set is None)) # check that constraints' set is not None
-		assert(not(opt_function is None) and opt_function.is_valid()) # check the optimization function is not None and the optimization function is valid
+		assert(not(obj_function is None) and obj_function.is_valid()) # check the objective function is not None and the objective function is valid
 		constraints = constraints_set.get_constraints()
 		for constraint_id in constraints:
 			model += constraints[constraint_id] , constraint_id # adding contraint in the model
-		model += opt_function.get_opt_function(), "Objective_Function" # adding optimization function in the model
+		model += obj_function.get_obj_function(), "Objective_Function" # adding objective function in the model
 		return model
 
 	# function to solve the ILP formulation
 	def solve_ilp(self):
 		self.reset_model()
-		self.model = self.update_model(self.model, self.constraints, self.opt_function)
+		self.model = self.update_model(self.model, self.constraints, self.obj_function)
 		solver = ilp.getSolver(self.get_solver(), msg=0) # msg=0 enforces no output of the ILP solver
 		self.status = self.model.solve(solver)
 		if(self.status != 1):
@@ -305,7 +305,7 @@ class ILP:
 			model = ilp.LpProblem(self.model_name, ilp.LpMinimize)
 		else:
 			model = ilp.LpProblem(self.model_name, ilp.LpMaximize)
-		model = self.update_model(model, self.constraints, self.opt_function)
+		model = self.update_model(model, self.constraints, self.obj_function)
 		model.writeLP(output_file)
 		self.log.info("The ILP formulation is written in "+output_file)
 

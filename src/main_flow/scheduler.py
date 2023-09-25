@@ -169,15 +169,28 @@ class Scheduler:
 		self.log.info("Exiting early due to an unimplemented function")
 		quit()
 
-
 	"""
 	Adds constraints that enforce a given II value to the constraint set.
 	@type II_value: integer
 	@param II_value: the II with which the scheduler is going to be constrained
 	"""
 	def set_II_constraints(self, II_value):
-		# TODO: write your code here
-		pass
+		#You must write both the implementation and the call of this function. 
+
+		self.log.error("The set_II_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+		quit()
+
+	"""
+	Adds the constraints needed to allow minimizing the ALAP objective function to produce a valid result.
+	"""
+	def create_pipelined_scheduling_ilp(self, II):
+		#output to terminal that this is the next function to implement
+		self.log.error("The create_pipelined_scheduling_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+		quit()
+
+
 
 
 #### DO NOT TOUCH FROM THIS LINE ####
@@ -200,14 +213,14 @@ class Scheduler:
 	@type sink_sv: dictionary
 	@param sink_svs: dictionary containing BB latency bounds for ALAP
 	"""
-	def create_scheduling_ilp(self, sink_svs=None):
+	def create_scheduling_ilp(self, sink_svs=None, II=None):
 		if self.sched_tech == "asap":
 			self.create_asap_scheduling_ilp()
 		elif self.sched_tech == "alap":
 			self.create_alap_scheduling_ilp(sink_svs)
 		elif self.sched_tech == "pipelined":
-			# TODO: write your code here
-			pass
+			self.create_pipelined_scheduling_ilp(II)
+
 		self.set_obj_function()
 
 	"""
@@ -219,8 +232,7 @@ class Scheduler:
 		elif self.sched_tech == 'alap':
 			self.set_alap_objective_function()
 		elif self.sched_tech == 'pipelined':
-			# TODO: write your code here
-			pass
+			self.set_asap_objective_function()
 		else:
 			self.log.error(f'Not implemented option! {self.sched_tech}')
 			raise NotImplementedError

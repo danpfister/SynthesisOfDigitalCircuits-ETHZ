@@ -153,7 +153,6 @@ def alap_rconstrained(parser, base_path, example_name):
 		###################### ASAP pipelined ######################
 
 def pipelined(parser, base_path, example_name):
-	#todo: add loop to test II valued
 	status = 0
 	ii = 0
 	scheduler = 0
@@ -161,8 +160,7 @@ def pipelined(parser, base_path, example_name):
 		ii= ii + 1
 		print(f"Trying II = {ii}")
 		scheduler = Scheduler(parser, "pipelined", log=log)
-		scheduler.create_scheduling_ilp()
-		scheduler.set_II_constraints(ii)
+		scheduler.create_scheduling_ilp(II=ii)
 		status = scheduler.solve_scheduling_ilp(base_path, example_name)
 	chart_title = "{0} - {1} (II: {2})".format("asap pipelined", example_name, ii)
 	scheduler.print_gantt_chart( chart_title, "{0}/{1}/{2}_{1}_asap_pipelined.pdf".format(base_path, example_name, "pipelined"))
