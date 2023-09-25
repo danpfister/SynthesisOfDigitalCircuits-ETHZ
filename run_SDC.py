@@ -121,7 +121,7 @@ def asap_rconstrained(parser, base_path, example_name):
 	scheduler.create_scheduling_ilp()
 
 	ilp_dependency_inj = scheduler.pass_scheduling_ilp
-	resource_manager = Resources(parser, ilp_dependency_inj, log=log)
+	resource_manager = Resource_Manager(parser, ilp_dependency_inj, log=log)
 	
 	resouce_constraint_dict = {}
 	resouce_constraint_dict["add"] = 1

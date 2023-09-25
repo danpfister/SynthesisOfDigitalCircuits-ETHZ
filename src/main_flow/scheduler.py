@@ -188,7 +188,14 @@ class Scheduler:
 		self.log.info("Exiting early due to an unimplemented function")
 		quit()
 
-
+	"""
+	Returns the numeric id of the BB to be pipelined
+	"""
+	def find_loop_bb(self):
+		#output to terminal that this is the next function to implement
+		self.log.error("The find_loop_bb member function in src/main_flow/scheduler.py has not yet been implemented")
+		self.log.info("Exiting early due to an unimplemented function")
+		quit()
 
 
 #### DO NOT TOUCH FROM THIS LINE ####
@@ -218,6 +225,7 @@ class Scheduler:
 			self.create_alap_scheduling_ilp(sink_svs)
 		elif self.sched_tech == "pipelined":
 			self.create_pipelined_scheduling_ilp(II)
+			self.II = II
 
 		self.set_obj_function()
 
@@ -235,12 +243,6 @@ class Scheduler:
 			self.log.error(f'Not implemented option! {self.sched_tech}')
 			raise NotImplementedError
 		
-	"""
-	Return a tuple consisting of the ilp object, constraint set and the optimization function
-	"""
-	def get_ilp_tuple(self):
-		# TODO: write your code here
-		pass
 
 	# function to solve the ilp and obtain scheduling
 	def solve_scheduling_ilp(self, base_path, example_name):
@@ -268,11 +270,9 @@ class Scheduler:
 		elif 'max_II' in self.ilp.get_ilp_solution():
 			self.log.info(f'The maximum II for this cdfg is {self.ilp.get_ilp_solution()["max_II"]}')
 			self.II = self.ilp.get_ilp_solution()["max_II"]
-		elif 'II' in self.ilp.get_ilp_solution():
-			self.log.info(f'The II for this cdfg is {self.ilp.get_ilp_solution()["II"]}')
-			self.II = self.ilp.get_ilp_solution()["II"]
+		elif self.II is not None:
+			self.log.info(f'The II for this cdfg is {self.II}')
 		return res
-
 
 	# function to get the gantt chart of a scheduling
 	def print_gantt_chart(self, chart_title="Untitled", file_path=None):
@@ -297,11 +297,20 @@ class Scheduler:
 				variables[bb_id].append(graph_name)
 				start_time[bb_id].append(float(attributes['latency'])) # start time of each operation
 				node_latency = float(get_node_latency(attributes))
-				if node_latency == 0.0:
-					node_latency = 0.1
-					bars_colors[bb_id].append("firebrick")
+				if attributes["type"] == "zext":
+					bars_colors[bb_id].append("yellowgreen")
+				elif attributes["type"] == "add":
+					bars_colors[bb_id].append("plum")
+				elif attributes["type"] == "mul":
+					bars_colors[bb_id].append("orange")
 				else:
-					bars_colors[bb_id].append("dodgerblue")
+					if node_latency == 0.0:
+						node_latency = 0.1
+						bars_colors[bb_id].append("firebrick")
+					else:
+						bars_colors[bb_id].append("dodgerblue")
+				
+				
 				duration[bb_id].append(node_latency) # duration of each operation
 				tmp_tick = float(attributes['latency']) + float(get_node_latency(attributes))
 				if tmp_tick > latest_tick[bb_id]:
@@ -330,7 +339,7 @@ class Scheduler:
 			plt.savefig(file_path)
 		plt.show()
 
-
+	
 		if "pipe" in self.sched_tech:
 
 			variables = []
@@ -362,19 +371,26 @@ class Scheduler:
 
 						graph_name = node + " Type: " + attributes['type'] + " Iter: " + str(it)
 						variables.append(graph_name)
-						start_time.append(float(attributes['latency']) + self.sched_sol["II"]*it) # start time of each operation
+						start_time.append(float(attributes['latency']) + self.II*it) # start time of each operation
 
 						# variables[bb_id].append(graph_name + " Iteration 2")
 						# start_time[bb_id].append(float(attributes['latency']) + self.sched_sol["II"]) # also append the second iteration
 						node_latency = float(get_node_latency(attributes))
 						#append twice
-						if node_latency == 0.0:
-							node_latency = 0.1
-							bars_colors.append("firebrick")
+						if attributes["type"] == "zext":
+							bars_colors.append("yellowgreen")
+						elif attributes["type"] == "add":
+							bars_colors.append("plum")
+						elif attributes["type"] == "mul":
+							bars_colors.append("orange")
 						else:
-							bars_colors.append("dodgerblue")
+							if node_latency == 0.0:
+								node_latency = 0.1
+								bars_colors.append("firebrick")
+							else:
+								bars_colors.append("dodgerblue")
 						duration.append(node_latency) # duration of each operation
-						tmp_tick = (float(attributes['latency']) + self.sched_sol["II"]*it)
+						tmp_tick = (float(attributes['latency']) + self.II*it)
 						print(f"graph name {graph_name} it {it} tmp_tick {tmp_tick} latest_tick {latest_tick}")
 						if tmp_tick > latest_tick:
 							latest_tick = tmp_tick
@@ -421,5 +437,3 @@ class Scheduler:
 				f.write(f'II := {self.II}')
 			else:
 				f.write(f'II := N/A')
-
-
