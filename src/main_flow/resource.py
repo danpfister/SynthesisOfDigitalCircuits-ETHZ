@@ -5,14 +5,13 @@ import logging
 ############################################################################################################################################
 ############################################################################################################################################
 #
-#	`RESOURCE` CLASS
+#	`RESOURCE_MANAGER` CLASS
 #
 ############################################################################################################################################
 #	DESCRIPTION:
 #					The following class is used for resource sharing in CDFG (Control DataFlow Graph) representing a function.
 ############################################################################################################################################
 #	ATTRIBUTES:
-#					- resource_dic : dictionary containing resources
 #					- ilp : ILP problem of the class ILP
 #					- constraint_set : set of constraints of the class CONSTRAINT_SET
 #					- obj_function : optimization function of the class Obj_Function
