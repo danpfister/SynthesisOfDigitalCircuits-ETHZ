@@ -82,24 +82,53 @@ class Scheduler:
 	"""
 	def add_artificial_nodes(self):
 		#output to terminal that this is the next function to implement
-		self.log.error("The add_artificial_nodes member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
+		#self.log.error("The add_artificial_nodes member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+
+		for bb in self.cfg:
+			print(bb)
+			numbericBBID = bb.attr["id"]
+			bbLabel = bb.attr["label"]
+
+			supersource_name = f"ssrc_{numbericBBID}"
+			supersink_name = f"ssink_{numbericBBID}"
+
+			self.cdfg.add_node(supersource_name, id=numbericBBID, bbID=bbLabel, type="supersource", label=supersource_name)
+			self.cdfg.add_node(supersink_name, id=numbericBBID, bbID=bbLabel, type="supersink", label=supersink_name)
+
+		for node in self.cdfg:
+			# ignore supersource and -sink
+			if "ssrc" in node or "ssink" in node: continue
+			# only check in same BB
+			preds = [pred for pred in self.cdfg.in_neighbors(node) if pred.attr["id"] == node.attr["id"]]
+			succs = [succ for succ in self.cdfg.out_neighbors(node) if succ.attr["id"] == node.attr["id"]]
+			if len([pred for pred in preds if self.cdfg.get_edge(pred, node).attr["style"] != "dashed"]) == 0:
+				# node has no predecessors -> needs to be connected
+				self.cdfg.add_edge(f"ssrc_{node.attr['id']}", node)
+			if len([succ for succ in succs if self.cdfg.get_edge(node, succ).attr["style"] != "dashed"]) == 0:
+				# node has no successors -> needs to be connected
+				self.cdfg.add_edge(node, f"ssink_{node.attr['id']}")
 
 		#draw the cdfg for testing your code in task 1
 		self.cdfg.layout(prog='dot')
 		self.cdfg.draw('output.pdf')
 	
 		#end the program here until you're ready to start task 2
-		quit()
+		#quit()
 
 	"""
 	Adds the scheduling variable of each node in the CDFG to the ILP formulation.
 	"""
 	def add_nodes_to_ilp(self):
 		#output to terminal that this is the next function to implement
-		self.log.error("The add_nodes_to_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The add_nodes_to_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+		for node in self.cdfg:
+			if "ssrc" in node or "ssink" in node:
+				self.ilp.add_variable(f"sv{node}", lower_bound=0, var_type="i")
+			else:
+				self.ilp.add_variable(f"sv{node}", var_type="i")
+		#quit()
 
 	"""
 	Adds data dependency constraints to the scheduler object's constraint set based on the edges between CDFG nodes.
@@ -107,27 +136,39 @@ class Scheduler:
 	def set_data_dependency_constraints(self):
 		#You must write both the implementation and the call of this function. 
 
-		self.log.error("The set_data_dependency_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The set_data_dependency_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+		edges = get_cdfg_edges(self.cdfg)
+		for edge in edges:
+			nodeA, nodeB = edge
+			if nodeA.attr["id"] != nodeB.attr["id"]: continue # ignore if not in same BB
+			if edge.attr["style"] == "dashed": continue # ignore if back edge
+			self.log.debug(f"adding constraint for edge from {nodeA} to {nodeB}")
+			self.constraints.add_constraint({f"sv{nodeA}": -1, f"sv{nodeB}": 1}, "geq", get_node_latency(nodeA.attr))
+		#quit()
 
 	"""
 	Adds the constraints needed to allow minimizing the ASAP objective function to produce a valid result.
 	"""
 	def create_asap_scheduling_ilp(self):
 		#output to terminal that this is the next function to implement
-		self.log.error("The create_asap_scheduling_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The create_asap_scheduling_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+		self.set_data_dependency_constraints()
+		#quit()
 
 	"""
 	Adds terms to the objective function with coefficients that will ensure each node is scheduled ASAP.
 	"""
 	def set_asap_objective_function(self):
 		#output to terminal that this is the next function to implement
-		self.log.error("The set_asap_objective_function member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The set_asap_objective_function member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+		for node in self.cdfg:
+			if "ssrc" in node or "ssink" in node: continue
+			self.log.debug(f"adding variable {node} to obj_fun")
+			self.obj_fun.add_variable(f"sv{node}", 1)
+		#quit()
 
 	"""
 	Returns the sv of each BB's supersink in the form of a dictionary/list
