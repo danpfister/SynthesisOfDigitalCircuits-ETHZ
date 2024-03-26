@@ -86,7 +86,6 @@ class Scheduler:
 		#self.log.info("Exiting early due to an unimplemented function")
 
 		for bb in self.cfg:
-			print(bb)
 			numbericBBID = bb.attr["id"]
 			bbLabel = bb.attr["label"]
 
@@ -98,7 +97,7 @@ class Scheduler:
 
 		for node in self.cdfg:
 			# ignore supersource and -sink
-			if "ssrc" in node or "ssink" in node: continue
+			if node.attr["type"] in ["supersource", "supersink"]: continue
 			# only check in same BB
 			preds = [pred for pred in self.cdfg.in_neighbors(node) if pred.attr["id"] == node.attr["id"]]
 			succs = [succ for succ in self.cdfg.out_neighbors(node) if succ.attr["id"] == node.attr["id"]]
@@ -124,7 +123,7 @@ class Scheduler:
 		#self.log.error("The add_nodes_to_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
 		#self.log.info("Exiting early due to an unimplemented function")
 		for node in self.cdfg:
-			if "ssrc" in node or "ssink" in node:
+			if node.attr["type"] in ["supersource", "supersink"]:
 				self.ilp.add_variable(f"sv{node}", lower_bound=0, var_type="i")
 			else:
 				self.ilp.add_variable(f"sv{node}", var_type="i")
@@ -143,7 +142,6 @@ class Scheduler:
 			nodeA, nodeB = edge
 			if nodeA.attr["id"] != nodeB.attr["id"]: continue # ignore if not in same BB
 			if edge.attr["style"] == "dashed": continue # ignore if back edge
-			self.log.debug(f"adding constraint for edge from {nodeA} to {nodeB}")
 			self.constraints.add_constraint({f"sv{nodeA}": -1, f"sv{nodeB}": 1}, "geq", get_node_latency(nodeA.attr))
 		#quit()
 
@@ -165,9 +163,8 @@ class Scheduler:
 		#self.log.error("The set_asap_objective_function member function in src/main_flow/scheduler.py has not yet been implemented")
 		#self.log.info("Exiting early due to an unimplemented function")
 		for node in self.cdfg:
-			if "ssrc" in node or "ssink" in node: continue
-			self.log.debug(f"adding variable {node} to obj_fun")
-			self.obj_fun.add_variable(f"sv{node}", 1)
+			if node.attr["type"] in ["supersource", "supersink"]: continue
+			self.obj_fun.add_variable(f"sv{node}", 1) # we want to minimize the starting time of nodes -> set coeff=1
 		#quit()
 
 	"""
@@ -175,9 +172,16 @@ class Scheduler:
 	"""
 	def get_sink_svs(self):
 		#output to terminal that this is the next function to implement
-		self.log.error("The get_sink_svs member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The get_sink_svs member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+		sink_svs = dict()
+		for node in self.cdfg:
+			if node.attr["type"] != "supersink": continue
+			sink_svs[f"{node}"] = self.ilp.get_operation_timing_solution(node)
+		sink_svs = dict(sorted(sink_svs.items()))
+		self.log.debug(sink_svs)
+		return sink_svs
+		#quit()
 
 	"""
 	Sets maximum sv constraints for each BB according to values passed to in in a dictionary, intended for ALAP
@@ -186,27 +190,35 @@ class Scheduler:
 	"""
 	def add_sink_sv_constraints(self, sink_svs):
 		#output to terminal that this is the next function to implement
-		self.log.error("The add_sink_sv_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The add_sink_sv_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+		for ssink, value in sink_svs.items():
+			self.log.debug(f"adding constraint {ssink} = {value}")
+			self.constraints.add_constraint({f"sv{ssink}": 1}, "leq", value)
+		#quit()
 
 	"""
 	Adds the constraints needed to allow minimizing the ALAP objective function to produce a valid result.
 	"""
 	def create_alap_scheduling_ilp(self, sink_svs):
 		#output to terminal that this is the next function to implement
-		self.log.error("The create_alap_scheduling_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The create_alap_scheduling_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+		self.set_data_dependency_constraints()
+		self.add_sink_sv_constraints(sink_svs)
+		#quit()
 
 	"""
 	Adds terms to the objective function with coefficients that will ensure each node is scheduled ALAP.
 	"""
 	def set_alap_objective_function(self):
 		#output to terminal that this is the next function to implement
-		self.log.error("The set_alap_objective_function member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The set_alap_objective_function member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+		for node in self.cdfg:
+			if "ssrc" in node or "ssink" in node: continue
+			self.obj_fun.add_variable(f"sv{node}", -1) # we want to maximize the starting time of nodes -> set coeff=-1
+		#quit()
 
 	"""
 	Adds constraints that enforce inter-iteration data dependencies
