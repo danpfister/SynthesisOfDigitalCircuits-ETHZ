@@ -52,13 +52,50 @@ class Resource_Manager:
 	Adds constraints to the constraint set that enforce the resource constraints contained in the resource dictionary
 	"""
 	def add_resource_constraints(self, resource_dict):
-		self.check_resource_dict(resource_dict)
+		self.check_resource_dict(resource_dict) # dict e.g.: {'add': 1, 'mul': 1, 'zext': 1}
+
+		ordered_instructions = get_topological_order(self.cdfg) #TODO: need to probably adjust sorting here
+		instruction_exec_time = {'add': 1, 'mul': 4}
+
+		self.log.debug(ordered_instructions)
+		self.log.debug(resource_dict)
+
+		# dict containing the ordered nodes of each constrained resource
+		constrained_instructions = {instr_type: [] for instr_type in resource_dict.keys()}
+		for instruction in ordered_instructions:
+			instr_type = instruction.attr["type"]
+			if instr_type not in constrained_instructions.keys(): continue # not resource constrained
+			self.log.debug(f"instruction {instruction} has type {instr_type}")
+			constrained_instructions[instr_type] = constrained_instructions[instr_type] + [instruction]
+		self.log.debug(constrained_instructions)
+
+		# add constraint for each constrained resource
+		for instr_type, nodes in constrained_instructions.items():
+			last_timestep_node = "ssrc_0" #TODO hardcoded for now
+			current_timestep_node = None
+			resource_load = 0
+			for node in nodes:
+				if resource_load == resource_dict[instr_type]: # check if maximum resource load is reached
+					last_timestep_node = current_timestep_node
+					resource_load = 0
+				current_timestep_node = node
+				resource_load += 1
+				self.log.debug(f"adding constraint sv{node} - sv{last_timestep_node} >= 1")
+				self.constraints.add_constraint({f"sv{last_timestep_node}": -1, f"sv{node}": 1}, "geq", instruction_exec_time.get(instr_type, 1))
+					
+		"""
+		given a resource R constrained with C:
+		start first C operations as early as possible
+		start next C operations after completion of the first C operations
+		and so on
+		"""
+
 
 		#output to terminal that this is the next function to implement
-		self.log.error("The add_resource_constraints member function in src/main_flow/resources.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
+		#self.log.error("The add_resource_constraints member function in src/main_flow/resources.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
 
-		quit()
+		#quit()
 
 	# function to add resources constraints for pipelined scheduling
 	def check_resource_constraints_pipelined(self, resource_dict, II):

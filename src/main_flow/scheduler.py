@@ -193,7 +193,6 @@ class Scheduler:
 		#self.log.error("The add_sink_sv_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
 		#self.log.info("Exiting early due to an unimplemented function")
 		for ssink, value in sink_svs.items():
-			self.log.debug(f"adding constraint {ssink} = {value}")
 			self.constraints.add_constraint({f"sv{ssink}": 1}, "leq", value)
 		#quit()
 
