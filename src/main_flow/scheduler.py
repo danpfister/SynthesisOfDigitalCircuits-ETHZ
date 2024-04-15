@@ -227,27 +227,45 @@ class Scheduler:
 	def set_pipelining_constraints(self, II):
 		#You must write both the implementation and the call of this function. 
 
-		self.log.error("The set_pipelining_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The set_pipelining_constraints member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+
+		edges = get_cdfg_edges(self.cdfg)
+		for edge in edges:
+			if edge.attr["style"] != "dashed": continue
+			nodeA, nodeB = edge # A store, B load
+			self.constraints.add_constraint({f"sv{nodeA}": 1, f"sv{nodeB}": -1}, "leq", II * 1 - get_node_latency(nodeA.attr))
+		#quit()
 
 	"""
 	Adds the constraints needed to allow minimizing the ALAP objective function to produce a valid result.
 	"""
 	def create_pipelined_scheduling_ilp(self, II):
 		#output to terminal that this is the next function to implement
-		self.log.error("The create_pipelined_scheduling_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The create_pipelined_scheduling_ilp member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+
+		self.set_data_dependency_constraints()
+		self.set_pipelining_constraints(II)
+
+		#quit()
 
 	"""
 	Returns the numeric id of the BB to be pipelined
 	"""
 	def find_loop_bb(self):
 		#output to terminal that this is the next function to implement
-		self.log.error("The find_loop_bb member function in src/main_flow/scheduler.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The find_loop_bb member function in src/main_flow/scheduler.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+
+		BB_latencies = dict()
+		for bb in self.cfg:
+			numbericBBID = bb.attr["id"]
+			BB_latencies[numbericBBID] = self.ilp.get_operation_timing_solution(f"ssink_{numbericBBID}") - self.ilp.get_operation_timing_solution(f"ssrc_{numbericBBID}")
+		BBid_with_longest_latency = (sorted(BB_latencies.items(), key=lambda item: item[1], reverse=True))[0][0]
+		self.log.debug(f"BB latencies: {BB_latencies} -> BB id with longest latency {BBid_with_longest_latency}")
+		return BBid_with_longest_latency
+		#quit()
 
 
 #### DO NOT TOUCH FROM THIS LINE ####
