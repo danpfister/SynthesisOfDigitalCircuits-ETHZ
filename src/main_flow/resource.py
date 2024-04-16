@@ -57,9 +57,6 @@ class Resource_Manager:
 		ordered_instructions = get_topological_order(self.cdfg) #TODO: need to probably adjust sorting here
 		instruction_exec_time = {'add': 1, 'mul': 4}
 
-		self.log.debug(ordered_instructions)
-		self.log.debug(resource_dict)
-
 		# dict containing the ordered nodes of each constrained resource
 		constrained_instructions = {instr_type: [] for instr_type in resource_dict.keys()}
 		for instruction in ordered_instructions:
@@ -97,14 +94,34 @@ class Resource_Manager:
 
 		#quit()
 
-	# function to add resources constraints for pipelined scheduling
+	'''
+	return true if MRT construction succeeds, else false
+	'''
 	def check_resource_constraints_pipelined(self, resource_dict, II):
 		self.check_resource_dict(resource_dict)
 
 		#output to terminal that this is the next function to implement
-		self.log.error("The check_resource_constraints_pipelined member function in src/main_flow/resources.py has not yet been implemented")
-		self.log.info("Exiting early due to an unimplemented function")
-		quit()
+		#self.log.error("The check_resource_constraints_pipelined member function in src/main_flow/resources.py has not yet been implemented")
+		#self.log.info("Exiting early due to an unimplemented function")
+
+		MRT_dictionary = dict()
+		for node in self.cdfg:
+			node_timing = self.ilp.get_operation_timing_solution(node)
+			column_index = int(node_timing % II)
+			if column_index in MRT_dictionary.keys():
+				MRT_dictionary[column_index] = MRT_dictionary[column_index] + [node.attr["type"]]
+			else:
+				MRT_dictionary[column_index] = [node.attr["type"]]
+
+		self.log.debug(f"checking {MRT_dictionary} with {resource_dict}")
+
+		for column_index, resource_list in MRT_dictionary.items():
+			for resource_type, resource_number in resource_dict.items():
+				if resource_list.count(resource_type) > resource_number:
+					return False
+		return True
+		
+		#quit()
 
 
 	"""
