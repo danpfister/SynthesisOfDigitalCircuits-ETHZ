@@ -54,6 +54,8 @@ class Resource_Manager:
 	def add_resource_constraints(self, resource_dict):
 		self.check_resource_dict(resource_dict) # dict e.g.: {'add': 1, 'mul': 1, 'zext': 1}
 
+		print(f"resource constraints are: {resource_dict}")
+
 		ordered_instructions = get_topological_order(self.cdfg) #TODO: need to probably adjust sorting here
 		instruction_exec_time = {'add': 1, 'mul': 4}
 
@@ -62,9 +64,12 @@ class Resource_Manager:
 		for instruction in ordered_instructions:
 			instr_type = instruction.attr["type"]
 			if instr_type not in constrained_instructions.keys(): continue # not resource constrained
+
 			self.log.debug(f"instruction {instruction} has type {instr_type}")
+
 			constrained_instructions[instr_type] = constrained_instructions[instr_type] + [instruction]
-		self.log.debug(constrained_instructions)
+
+		self.log.debug(f"constrained instructions are: {constrained_instructions}")
 
 		# add constraint for each constrained resource
 		for instr_type, nodes in constrained_instructions.items():
@@ -78,7 +83,10 @@ class Resource_Manager:
 				current_timestep_node = node
 				resource_load += 1
 				self.log.debug(f"adding constraint sv{node} - sv{last_timestep_node} >= 1")
-				self.constraints.add_constraint({f"sv{last_timestep_node}": -1, f"sv{node}": 1}, "geq", instruction_exec_time.get(instr_type, 1))
+				if last_timestep_node == "ssrc_0": # ssrc doesn't have any latency -> need to add different constraint
+					self.constraints.add_constraint({f"sv{last_timestep_node}": -1, f"sv{node}": 1}, "geq", 0)
+				else:
+					self.constraints.add_constraint({f"sv{last_timestep_node}": -1, f"sv{node}": 1}, "geq", instruction_exec_time.get(instr_type, 1))
 					
 		"""
 		given a resource R constrained with C:
