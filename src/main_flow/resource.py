@@ -56,37 +56,43 @@ class Resource_Manager:
 
 		print(f"resource constraints are: {resource_dict}")
 
-		ordered_instructions = get_topological_order(self.cdfg) #TODO: need to probably adjust sorting here
-		instruction_exec_time = {'add': 1, 'mul': 4}
+		ordered_instructions = get_topological_order(self.cdfg) #TODO might need to sort this
 
-		# dict containing the ordered nodes of each constrained resource
-		constrained_instructions = {instr_type: [] for instr_type in resource_dict.keys()}
-		for instruction in ordered_instructions:
-			instr_type = instruction.attr["type"]
-			if instr_type not in constrained_instructions.keys(): continue # not resource constrained
+		for bb in self.cfg: # only need to check within each BB
+			BBID = bb.attr["id"]
 
-			self.log.debug(f"instruction {instruction} has type {instr_type}")
+			# dict containing the ordered nodes of each constrained resource
+			constrained_instructions = {instr_type: [] for instr_type in resource_dict.keys()}
+			for instruction in ordered_instructions:
+				instr_type = instruction.attr["type"]
+				if instruction.attr["id"] != BBID: continue # skip if not in current BB
+				if instr_type not in constrained_instructions.keys(): continue # not resource constrained
 
-			constrained_instructions[instr_type] = constrained_instructions[instr_type] + [instruction]
+				#self.log.debug(f"instruction {instruction} has type {instr_type}")
 
-		self.log.debug(f"constrained instructions are: {constrained_instructions}")
+				constrained_instructions[instr_type] = constrained_instructions[instr_type] + [instruction]
 
-		# add constraint for each constrained resource
-		for instr_type, nodes in constrained_instructions.items():
-			last_timestep_node = "ssrc_0" #TODO hardcoded for now
-			current_timestep_node = None
-			resource_load = 0
-			for node in nodes:
-				if resource_load == resource_dict[instr_type]: # check if maximum resource load is reached
-					last_timestep_node = current_timestep_node
-					resource_load = 0
-				current_timestep_node = node
-				resource_load += 1
-				self.log.debug(f"adding constraint sv{node} - sv{last_timestep_node} >= 1")
-				if last_timestep_node == "ssrc_0": # ssrc doesn't have any latency -> need to add different constraint
-					self.constraints.add_constraint({f"sv{last_timestep_node}": -1, f"sv{node}": 1}, "geq", 0)
-				else:
-					self.constraints.add_constraint({f"sv{last_timestep_node}": -1, f"sv{node}": 1}, "geq", instruction_exec_time.get(instr_type, 1))
+			self.log.debug(f"constrained instructions for BB{BBID} are: {constrained_instructions}")
+
+			# add constraint for each constrained resource
+			for instr_type, nodes in constrained_instructions.items():
+				last_timestep_node = f"ssrc_{BBID}"
+				current_timestep_node = None
+				resource_load = 0
+				operation_block = 0
+				for node in nodes:
+					if resource_load == resource_dict[instr_type]: # check if maximum resource load is reached
+						last_timestep_node = current_timestep_node
+						resource_load = 0
+						operation_block += 1
+					current_timestep_node = node
+					resource_load += 1
+					if "ssrc" in last_timestep_node: # ssrc doesn't have any latency -> need to add different constraint
+						self.constraints.add_constraint({f"sv{last_timestep_node}": -1, f"sv{node}": 1}, "geq", 0)
+						self.log.debug(f"adding constraint sv{node} - sv{last_timestep_node} >= 0")
+					else:
+						self.constraints.add_constraint({f"sv{last_timestep_node}": -1, f"sv{node}": 1}, "geq", get_node_latency(node.attr))
+						self.log.debug(f"adding constraint sv{node} - sv{last_timestep_node} >= {get_node_latency(node.attr)}")
 					
 		"""
 		given a resource R constrained with C:
