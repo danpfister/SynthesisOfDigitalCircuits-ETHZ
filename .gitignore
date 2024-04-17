@@ -13,3 +13,5 @@ a.out
 *.pdf
 *.txt
 __pycache__/
+!report/*
+!report/figures/*
