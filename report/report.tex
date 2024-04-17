@@ -166,5 +166,7 @@ sv(_mul4) @ bb(1) := 1.0
         \item The MRT heuristic suffers from the limitation that all operations of one iteration must be executed consecutively (without any NOPs in between). The upside to this limitation is that it is very easily computable and thus very efficient.
         \item The heuristic could be improved by also adding the possibility of adding NOPs in between operations or reordering the operations. However, this would lead to a much higher computational load and the MRT's efficiency would suffer greatly.
     \end{enumerate}
+    \section{Final Words}
+    All the tests pass for all kernels and methods, however, for some reason I have not been able to find, the tester sometimes fails on \emph{kernel\_4} using the methods \emph{asap\_rconst} and \emph{pipelined\_rconst}. This behaviour is very irregular, as consecutive runs of the tester (without touching anything in the code) can lead to different results of the tester. Other students have also reported this behaviour, as shown in the \href{https://moodle-app2.let.ethz.ch/mod/forum/discuss.php?d=146066}{Moodle Forum}.
     
 \end{document}
