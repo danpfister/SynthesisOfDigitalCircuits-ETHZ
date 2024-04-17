@@ -56,10 +56,20 @@ class Resource_Manager:
 
 		print(f"resource constraints are: {resource_dict}")
 
-		ordered_instructions = get_topological_order(self.cdfg) #TODO might need to sort this
+		instructions = get_topological_order(self.cdfg) #TODO might need to sort this
 
 		for bb in self.cfg: # only need to check within each BB
 			BBID = bb.attr["id"]
+			ordered_instructions = list()
+
+			for instr in instructions: # ugly fix to sort instructions
+				try: # get_edge() fails if no edge, i.e. instr is not connected to a supersource -> add to the back
+					self.cdfg.get_edge(f"ssrc_{BBID}", instr)
+					ordered_instructions = [instr] + ordered_instructions
+					self.log.debug(f"found edge ssrc_{BBID} to {instr}")
+				except: # add instr which is connected to supersource to the front
+					ordered_instructions = ordered_instructions + [instr]
+					self.log.debug(f"no edge to {instr}")
 
 			# dict containing the ordered nodes of each constrained resource
 			constrained_instructions = {instr_type: [] for instr_type in resource_dict.keys()}
