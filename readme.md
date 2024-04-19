@@ -1,6 +1,6 @@
 # Disclaimer
 
-This fork contains the solved tasks of Project 1 of the [227-0128-00L  Synthesis of Digital Circuits](https://www.vvz.ethz.ch/Vorlesungsverzeichnis/lerneinheit.view?lang=en&lerneinheitId=176526&semkez=2024S&) course. No guarantee is given for the correctness or completeness of the solutions provided here. The original README is included below.
+This repository contains the solved tasks of Project 1 of the [227-0128-00L  Synthesis of Digital Circuits](https://www.vvz.ethz.ch/Vorlesungsverzeichnis/lerneinheit.view?lang=en&lerneinheitId=176526&semkez=2024S&) course. No guarantee is given for the correctness or completeness of the solutions provided here. The original README is included below.
 
 ------------
 
